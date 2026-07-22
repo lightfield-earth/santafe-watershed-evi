@@ -20,7 +20,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --cream: #eceae4; --ink: #2c2a26; --hairline: rgba(0,0,0,.10); --shadow: 0 1px 6px rgba(0,0,0,.14); }
+    :root { --cream: #eceae4; --ink: #2c2a26; --hairline: rgba(0,0,0,.10); --shadow: 0 1px 6px rgba(0,0,0,.14);
+            /* Controls never go brighter than the card they sit on — they step DOWN from it.
+               Unselected buttons take --sunk, the selected one the slider's olive rather than
+               --ink. Nothing on the map should out-contrast a colour ramp this quiet: white
+               buttons drew the eye first, and near-black selection drew it harder. */
+            --accent: #5c6b4a; --sunk: #e3e0d9; }
     body { margin: 0; font-family: "Open Sans", system-ui, sans-serif; color: var(--ink); }
     /* the wrapper is what goes fullscreen, so the overlays come along with it */
     #map-wrap { position: absolute; inset: 0; background: var(--cream); }
@@ -58,15 +63,15 @@
 
     label.k { display: block; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
     .val { float: right; font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
-    input[type=range] { width: 100%; margin: 2px 0 0; accent-color: #5c6b4a; }
+    input[type=range] { width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
     .seg { display: flex; gap: 4px; margin-top: 2px; }
     .seg button { flex: 1 1 0; font: inherit; font-size: 12px; padding: 5px 6px; border-radius: 5px;
-                  cursor: pointer; border: 1px solid var(--hairline); background: #fff; color: var(--ink); }
-    .seg button.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+                  cursor: pointer; border: 1px solid var(--hairline); background: var(--sunk); color: #4b4841; }
+    .seg button.on { background: var(--accent); color: #f2f0ea; border-color: var(--accent); }
     .grp { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--hairline); }
     /* Shortcut hints. Quiet enough to ignore, present enough to be discoverable — an undocumented
        key on a public map may as well not exist. */
-    kbd { font: inherit; font-size: 10px; color: #7a776e; background: #fff; padding: 1px 4px;
+    kbd { font: inherit; font-size: 10px; color: #7a776e; background: var(--sunk); padding: 1px 4px;
           border: 1px solid var(--hairline); border-radius: 3px; margin-left: 2px; }
     .note { color: #7a776e; font-size: 11px; line-height: 1.4; margin-top: 6px; }
 
