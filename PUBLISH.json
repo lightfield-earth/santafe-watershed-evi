@@ -1,0 +1,29 @@
+{
+  "generatedBy": "evi-perceptual-experiment/build_published.mjs",
+  "sourceCommit": "8f53034",
+  "publishedAt": "2026-07-22T02:00:10.888Z",
+  "scene": "S2C_13SDV_20260701_0_L2A",
+  "aoi_huc12": "130202010102",
+  "state": {
+    "tf": "robust",
+    "upperPct": 95,
+    "classed": false,
+    "bins": 6,
+    "chroma": 0.132,
+    "dL": 0.25,
+    "L": 0.785,
+    "composite": "multiply",
+    "shade": 0.75,
+    "roads": false,
+    "camera": {
+      "center": [
+        -105.8784,
+        35.6955
+      ],
+      "zoom": 10.71,
+      "bearing": 0,
+      "pitch": 0
+    }
+  },
+  "chromaCeiling": 0.1565
+}

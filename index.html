@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<!-- TEMPLATE — not served. `build_published.mjs` substitutes the double-underscored tokens below
+     and writes the result to published-maps/santafe-watershed-evi/index.html. Edit this file, not
+     that one. (Tokens are not spelled out in this comment: the build asserts that none survive
+     substitution, and an example in prose would trip it.)
+
+     This is a template rather than a string inside build_published.mjs so that it stays real,
+     editable HTML: the module body contains GLSL in template literals, and nesting those inside
+     another template literal means escaping every backtick and ${ in two shader sources. That is
+     exactly the class of error test_harness.mjs was written to catch, so don't create it. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EVI — Upper Santa Fe River Watershed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Enhanced Vegetation Index across the municipal watershed above Santa Fe, New Mexico, from Sentinel-2 over Copernicus GLO-30 shaded relief." />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --cream: #eceae4; --ink: #2c2a26; --hairline: rgba(0,0,0,.10); --shadow: 0 1px 6px rgba(0,0,0,.14); }
+    body { margin: 0; font-family: "Open Sans", system-ui, sans-serif; color: var(--ink); }
+    /* the wrapper is what goes fullscreen, so the overlays come along with it */
+    #map-wrap { position: absolute; inset: 0; background: var(--cream); }
+    #map { position: absolute; inset: 0; }
+
+    .panel { background: var(--cream); border: 1px solid var(--hairline);
+             box-shadow: var(--shadow); border-radius: 8px; }
+    .panel-pad { padding: 10px 12px; }
+
+    /* One column on the RIGHT, everything the same width. It sits opposite the map controls
+       deliberately: the bottom-left corner belongs to the logo and the scale bar, and a tall
+       column on that side lands on top of both. The column is 232px of content and carries no
+       padding of its own — its children are stretched to that width including their border, so
+       232px really is the footprint.
+       The column stops short of the bottom rather than running the full height, which leaves the
+       lower-right corner to the attribution — so the ⓘ sits in the true corner and nothing has to
+       dodge sideways. --col-foot is that reserved strip: the collapsed ⓘ plus its margin plus a
+       gap. Derive anything that has to clear the column from these, never hand-count. */
+    :root { --col-w: 232px; --col-foot: 46px; }
+    #right-col { position: absolute; z-index: 1; top: 10px; right: 10px; width: var(--col-w);
+                 max-height: calc(100% - 10px - var(--col-foot)); overflow-y: auto;
+                 overscroll-behavior: contain;
+                 display: flex; flex-direction: column; gap: 10px;
+                 transition: opacity .18s ease, transform .18s ease; }
+    #right-col.hidden { opacity: 0; transform: translateX(8px); pointer-events: none; }
+
+    h2 { margin: 0 0 6px; font-family: "Lato", sans-serif; font-weight: 700; font-size: 14px; }
+    .sub { font-size: 11px; color: #6b685f; margin: -2px 0 8px; }
+
+    #ramp { height: 12px; border-radius: 3px; border: 1px solid var(--hairline); display: flex; overflow: hidden; }
+    #ramp i { flex: 1 1 0; }
+    #ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: #6b685f;
+             margin-top: 3px; font-variant-numeric: tabular-nums; }
+    #ticks b { font-weight: 600; }
+
+    label.k { display: block; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+    .val { float: right; font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
+    input[type=range] { width: 100%; margin: 2px 0 0; accent-color: #5c6b4a; }
+    .seg { display: flex; gap: 4px; margin-top: 2px; }
+    .seg button { flex: 1 1 0; font: inherit; font-size: 12px; padding: 5px 6px; border-radius: 5px;
+                  cursor: pointer; border: 1px solid var(--hairline); background: #fff; color: var(--ink); }
+    .seg button.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+    .grp { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+    /* Shortcut hints. Quiet enough to ignore, present enough to be discoverable — an undocumented
+       key on a public map may as well not exist. */
+    kbd { font: inherit; font-size: 10px; color: #7a776e; background: #fff; padding: 1px 4px;
+          border: 1px solid var(--hairline); border-radius: 3px; margin-left: 2px; }
+    .note { color: #7a776e; font-size: 11px; line-height: 1.4; margin-top: 6px; }
+
+    #about p { margin: 0 0 7px; font-size: 12px; line-height: 1.45; }
+    #about p:last-child { margin-bottom: 0; }
+    #about .meta { color: #7a776e; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+
+    #logo { position: absolute; z-index: 1; bottom: 34px; left: 10px; padding: 10px 12px; }
+    #logo img { display: block; height: 42px; width: auto; }
+
+    /* cream-ify MapLibre's own chrome so it doesn't out-shout the map */
+    .maplibregl-ctrl-group { background: var(--cream) !important; border: 1px solid var(--hairline) !important; box-shadow: var(--shadow) !important; }
+    .maplibregl-ctrl-group button + button { border-top: 1px solid var(--hairline); }
+    .maplibregl-ctrl-scale { background: rgba(236,234,228,.85); border: 2px solid var(--hairline); border-top: none;
+                             color: var(--ink); font-family: "Open Sans", sans-serif; }
+    .maplibregl-ctrl.maplibregl-ctrl-attrib { background: rgba(236,234,228,.82) !important; font-family: "Open Sans", sans-serif; }
+    .maplibregl-ctrl-attrib a { color: #6b685f; }
+    .maplibregl-ctrl-bottom-right .maplibregl-ctrl,
+    .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin-bottom: 6px; }
+    .toggle-panels-btn { display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--ink); }
+    .toggle-panels-btn.is-off { color: #a09d93; }
+
+    /* The attribution keeps MapLibre's own bottom-right position — the column reserves
+       --col-foot above it, so there is nothing to dodge and no override to get wrong.
+       (An earlier version slid it left of the column instead. If you ever reintroduce that, note
+       that a `transition` on a `var()`-derived `right` does NOT re-resolve when the variable
+       changes: the computed value stays pinned at the old number while the custom property reads
+       correctly on the same element, which looks exactly like a broken selector.) */
+
+    /* On a phone the column would eat the map. Let it share the width and cap its height so the
+       map stays the larger thing on screen; the ☰ control hides it outright. Capping the height is
+       also what keeps it off the attribution, so no horizontal shift is needed down here. */
+    @media (max-width: 560px) {
+      #right-col { width: calc(100% - 74px); max-height: 46%; }
+      #logo { bottom: 30px; }
+      #logo img { height: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map-wrap">
+    <div id="map"></div>
+
+    <div id="right-col">
+      <div id="legend" class="panel panel-pad">
+        <h2>Vegetation Vigor</h2>
+        <div class="sub">Enhanced Vegetation Index<br />1 July 2026</div>
+        <div id="ramp"></div>
+        <div id="ticks"><span id="t0"></span><span id="t1"></span></div>
+        <div class="note">Warm tones are sparse, dry ground; green is dense closed canopy.</div>
+      </div>
+
+      <div id="controls" class="panel panel-pad">
+        <h2>Display</h2>
+        <label class="k" for="terrain">Terrain strength<span class="val" id="terrain-val"></span></label>
+        <input type="range" id="terrain" min="0" max="1" step="0.01" />
+        <div class="grp">
+          <label class="k">Roads &amp; road labels <kbd>r</kbd></label>
+          <div class="seg" id="roads">
+            <button data-v="0">Hidden</button><button data-v="1">Visible</button>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="seg"><button id="reset">Reset view <kbd>b</kbd></button></div>
+        </div>
+      </div>
+
+      <div id="about" class="panel panel-pad">
+        <h2>About this map</h2>
+        <p>The <b>Enhanced Vegetation Index</b> measures how much living, photosynthesizing plant
+          matter a patch of ground carries. It is computed from a single cloud-free Sentinel-2
+          scene and shown at the satellite's native 10&nbsp;m resolution.</p>
+        <p>The highlighted area is <b>HUC12 130202010102, "Headwaters Santa Fe River"</b> — the 140.7&nbsp;km²
+          municipal watershed encompassing Nichols and McClure reservoirs. The dry
+          corridor running down through Santa Fe and the forested headwaters at the crest are both
+          in frame, which is the contrast the map is built to show.</p>
+        <p>The terrain is derived from the Copernicus GLO-30 elevation model.</p>
+        <p class="meta">S2C_13SDV_20260701_0_L2A · 1 July 2026 · 0.13% cloud · 10&nbsp;m · EPSG:32613</p>
+      </div>
+    </div>
+
+    <div id="logo" class="panel"><img src="./lightfield-logo.png" alt="LightField" /></div>
+  </div>
+
+<script type="module">
+import { buildLut, rampColor, classedColors, makeTransfer, LUT_N, PALETTE } from "./colormap.js";
+
+// ---------------------------------------------------------------------------------------
+// FROZEN at publish time from the tuning harness (evi-perceptual-experiment/harness.html).
+// Every perceptual decision — transfer function, palette chroma, lightness tilt and center,
+// the opening camera — is settled here and never changes at runtime. `shade` and `roads` are
+// the only two the viewer can move, and they are seeded from this same freeze.
+//
+// To change any of the others: retune in the harness and republish. Do not hand-edit, or the
+// map stops matching the state recorded in PUBLISH.json.
+// ---------------------------------------------------------------------------------------
+const CONFIG = {
+  "tf": "robust",
+  "upperPct": 95,
+  "classed": false,
+  "bins": 6,
+  "chroma": 0.132,
+  "dL": 0.25,
+  "L": 0.785,
+  "shade": 0.75,
+  "roads": false,
+  "camera": {
+    "center": [
+      -105.8784,
+      35.6955
+    ],
+    "zoom": 10.71,
+    "bearing": 0,
+    "pitch": 0
+  }
+};
+
+const HILL_TILES = "https://tiles.lightfield.earth/hillshade_tiles_planet_z12_webp/{z}/{x}/{y}.webp";
+
+// The two live values, seeded from the freeze.
+let shade = CONFIG.shade;
+let roads = CONFIG.roads;
+
+const loadImage = (src) => new Promise((ok, no) => {
+  const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src;
+});
+
+const [style, assets, tfs, dataImg] = await Promise.all([
+  fetch("./style.json").then((r) => r.json()),
+  fetch("./data/assets.json").then((r) => r.json()),
+  fetch("./data/transfer_functions.json").then((r) => r.json()),
+  loadImage("./data/evi_data.png"),
+]);
+
+// Capture each road layer's ORIGINAL visibility: 92 of these 150 are already hidden by the base
+// cartography, so showing roads must restore what each layer had rather than blanket-showing them
+// (which would reveal every tunnel casing the style deliberately suppresses).
+// NB must come after the fetch above — reading `style` before its declaration is a TDZ error that
+// takes the whole module down and fails the page to a blank map with no visible error.
+const ROAD_LAYERS = style.layers
+  .filter((l) => ["transportation", "transportation_name"].includes(l["source-layer"]))
+  .map((l) => [l.id, l.layout?.visibility ?? "visible"]);
+const ROAD_VIS = new Map(ROAD_LAYERS);
+
+// Seed the road state into the STYLE OBJECT, before the map is constructed.
+//
+// Doing this only in the `load` handler is too late: `load` fires after the first frame has already
+// painted, so the base style's roads draw once and then vanish — a flash on every page load. Here
+// MapLibre never sees the intermediate state, so there is nothing to flash.
+//
+// Note this is NOT the same as baking roads-off into style.json. The original per-layer visibility
+// has to survive: 92 of these 150 layers are already hidden by the base cartography, and turning
+// roads on means restoring what each layer had, not blanket-showing them. ROAD_LAYERS is captured
+// immediately above, off the untouched style, so that information is safe before this runs.
+for (const l of style.layers)
+  if (ROAD_VIS.has(l.id))
+    l.layout = { ...l.layout, visibility: roads ? ROAD_VIS.get(l.id) : "none" };
+
+// ---------------------------------------------------------------------------------------
+// The data layer. It does the colormap and nothing else: terrain is MapLibre's own raster
+// hillshade layer sitting on top, which is a plain multiply. That is the shipping path, and
+// the harness measured it against a bespoke Oklab composite — the two differ by about one JND
+// at this palette's chroma, so the extra shader was not worth its complexity. See
+// evi-perceptual-experiment/docs/FINDINGS.md §2.
+// ---------------------------------------------------------------------------------------
+const VS = `
+attribute vec2 a_pos;      // web-mercator [0,1]
+uniform mat4 u_matrix;
+uniform vec4 u_extent;     // x0,y0,x1,y1 of the data quad, for the uv
+varying vec2 v_uv;
+void main() {
+  v_uv = (a_pos - u_extent.xy) / (u_extent.zw - u_extent.xy);
+  gl_Position = u_matrix * vec4(a_pos, 0.0, 1.0);
+}`;
+
+const FS = `
+precision highp float;
+varying vec2 v_uv;
+uniform sampler2D u_data, u_lut;
+void main() {
+  vec4 d = texture2D(u_data, v_uv);
+  if (d.b < 0.5) discard;                                   // outside the basin / masked
+  // R,G carry a big-endian uint16 of (EVI + 1) / 2 — which is already the LUT index, because the
+  // LUT is built over exactly the encoding range. The transfer function is baked into the LUT.
+  float idx = (d.r * 255.0 * 256.0 + d.g * 255.0) / 65535.0;
+  gl_FragColor = vec4(texture2D(u_lut, vec2(idx, 0.5)).rgb, 1.0);
+}`;
+
+const mc = (lng, lat) => maplibregl.MercatorCoordinate.fromLngLat({ lng, lat });
+const [tl, tr, br, bl] = assets.coordinates.map(([lng, lat]) => mc(lng, lat));
+const EXT = [tl.x, tl.y, br.x, br.y];
+
+const eviLayer = {
+  id: "evi", type: "custom",
+  onAdd(map, gl) {
+    this.map = map; this.gl = gl;
+    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    this.prog = gl.createProgram();
+    gl.attachShader(this.prog, sh(gl.VERTEX_SHADER, VS));
+    gl.attachShader(this.prog, sh(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(this.prog);
+    if (!gl.getProgramParameter(this.prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(this.prog));
+    this.u = Object.fromEntries(["u_matrix", "u_extent", "u_data", "u_lut"]
+      .map((n) => [n, gl.getUniformLocation(this.prog, n)]));
+    this.aPos = gl.getAttribLocation(this.prog, "a_pos");
+
+    this.buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(
+      [tl.x, tl.y, tr.x, tr.y, bl.x, bl.y, br.x, br.y]), gl.STATIC_DRAW);
+
+    const tex2d = (img) => {
+      const t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);   // the packed uint16 must survive verbatim
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);    // restore: MapLibre's own uploads expect it
+      // NEAREST on the data texture: interpolating the two halves of a packed uint16 would
+      // produce garbage values at every texel boundary.
+      for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, p, gl.NEAREST);
+      for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, p, gl.CLAMP_TO_EDGE);
+      return t;
+    };
+    this.dataTex = tex2d(dataImg);
+
+    // The LUT is uploaded exactly once. Nothing that feeds it can move at runtime.
+    this.lutTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.lutTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, LUT_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+      buildLut({ tfs, tf: CONFIG.tf, upperPct: CONFIG.upperPct, classed: CONFIG.classed,
+                 bins: CONFIG.bins, chroma: CONFIG.chroma, dL: CONFIG.dL, L: CONFIG.L,
+                 eviMin: assets.evi_min, eviMax: assets.evi_max }));
+    for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, p, gl.NEAREST);
+    for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, p, gl.CLAMP_TO_EDGE);
+  },
+  render(gl, matrix) {
+    gl.useProgram(this.prog);
+    gl.uniformMatrix4fv(this.u.u_matrix, false, matrix);
+    gl.uniform4f(this.u.u_extent, ...EXT);
+    for (const [i, [t, loc]] of [[this.dataTex, this.u.u_data], [this.lutTex, this.u.u_lut]].entries()) {
+      gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(loc, i);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.enableVertexAttribArray(this.aPos);
+    gl.vertexAttribPointer(this.aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  },
+};
+
+// ---------------------------------------------------------------------------------------
+// `hash: true` lets a shared #zoom/lat/lon link win over the frozen camera, so a bare URL opens
+// on the published view while a deep link still works.
+const map = new maplibregl.Map({ container: "map", style, ...CONFIG.camera, hash: true,
+  minZoom: 9, maxZoom: 17, attributionControl: false });
+
+// Controls go top-LEFT, opposite the panel column. The bottom-left corner is the logo's and the
+// scale bar's; stacking the panels there too put all four in the same corner.
+map.addControl(new maplibregl.NavigationControl({ showZoom: true, showCompass: true }), "top-left");
+map.addControl(new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") }), "top-left");
+
+// Collapse the column to reveal more map. Lifted from ecoregions-terrain-map/index.html.
+class TogglePanelsControl {
+  onAdd() {
+    const wrap = document.createElement("div");
+    wrap.className = "maplibregl-ctrl maplibregl-ctrl-group";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggle-panels-btn";
+    btn.title = "Show/hide panels";
+    btn.setAttribute("aria-label", "Show or hide panels");
+    btn.innerHTML = "☰";
+    btn.onclick = () =>
+      btn.classList.toggle("is-off", document.getElementById("right-col").classList.toggle("hidden"));
+    wrap.appendChild(btn);
+    return wrap;
+  }
+  onRemove() {}
+}
+map.addControl(new TogglePanelsControl(), "top-left");
+
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-left");
+map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+map.on("load", () => {
+  map.addSource("hillshade", { type: "raster", tiles: [HILL_TILES], tileSize: 512, minzoom: 0, maxzoom: 12,
+    attribution: "Hillshade: Copernicus GLO-30 · Sentinel-2 L2A (ESA) · © OpenMapTiles © OpenStreetMap" });
+  const beforeId = map.getStyle().layers[1].id;             // just above the cream background
+  // Order matters and is the whole terrain composite: insert the data first, then the hillshade
+  // before the same layer, which lands it directly ON TOP of the data. The hosted tiles are black
+  // with the shade in ALPHA, so drawing them over the data is source-over black — a plain multiply.
+  map.addLayer(eviLayer, beforeId);
+  map.addLayer({ id: "hillshade", type: "raster", source: "hillshade",
+    paint: { "raster-opacity": shade, "raster-resampling": "linear", "raster-fade-duration": 0 } }, beforeId);
+  applyRoads();
+  // attribution starts collapsed (just the ⓘ button); expands on click
+  document.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
+});
+
+function applyRoads() {
+  for (const [id, vis] of ROAD_VIS)
+    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", roads ? vis : "none");
+}
+
+// ---- legend ----------------------------------------------------------------------------
+// Drawn once: everything feeding it is frozen.
+function drawLegend() {
+  const P = { ...PALETTE, C: CONFIG.chroma, dL: CONFIG.dL, L: CONFIG.L };
+  const n = CONFIG.classed ? CONFIG.bins : 32;
+  const cols = CONFIG.classed ? classedColors(CONFIG.bins, P)
+                              : Array.from({ length: n }, (_, i) => rampColor(i / (n - 1), P));
+  document.getElementById("ramp").innerHTML =
+    cols.map((c) => `<i style="background:rgb(${c.join(",")})"></i>`).join("");
+  // Label the ends with the EVI values the transfer function actually maps to 0 and 1 — i.e. the
+  // clip bounds. Take the LAST knot that still maps to 0 and the FIRST that reaches 1; picking the
+  // nearest match instead reports the data minimum (−1.00) for every clipping transfer function.
+  const f = makeTransfer(tfs, CONFIG.tf, CONFIG.upperPct);
+  const k = tfs.rank.knots;
+  const lo = k.filter((v) => f(v) <= 1e-6).pop() ?? k[0];
+  const hi = k.find((v) => f(v) >= 1 - 1e-6) ?? k[k.length - 1];
+  document.getElementById("t0").innerHTML = `<b>${lo.toFixed(2)}</b> sparse`;
+  document.getElementById("t1").innerHTML = `dense <b>${hi.toFixed(2)}</b>`;
+}
+drawLegend();
+
+// ---- the two live controls -------------------------------------------------------------
+const terrain = document.getElementById("terrain");
+const terrainVal = document.getElementById("terrain-val");
+terrain.value = shade;
+terrainVal.textContent = Number(shade).toFixed(2);
+terrain.oninput = () => {
+  shade = Number(terrain.value);
+  terrainVal.textContent = shade.toFixed(2);
+  // Safe at slider frequency: this is a paint property on an already-loaded raster layer, and no
+  // LUT rebuild is involved.
+  if (map.getLayer("hillshade")) map.setPaintProperty("hillshade", "raster-opacity", shade);
+};
+
+const roadBtns = [...document.querySelectorAll("#roads button")];
+function drawRoadBtns() { roadBtns.forEach((b) => b.classList.toggle("on", (b.dataset.v === "1") === roads)); }
+roadBtns.forEach((b) => b.onclick = () => { roads = b.dataset.v === "1"; drawRoadBtns(); applyRoads(); });
+drawRoadBtns();
+
+document.getElementById("reset").onclick = () => map.easeTo(CONFIG.camera);
+
+// The harness's two viewing shortcuts, carried over: `b` back to the published view, `r` roads.
+// (`c` and `t` are not here — they switch compositing and flip the tilt, both frozen at publish.)
+//
+// Two guards. Bail on any modifier, or Cmd/Ctrl+R stops reloading the page and starts toggling
+// roads — a public map must not capture the browser's own shortcuts. And bail inside a form
+// field, so typing never reaches here; the terrain slider is focusable and takes arrow keys.
+window.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.matches?.("input, textarea, select")) return;
+  const k = e.key.toLowerCase();
+  if (k === "b") map.easeTo(CONFIG.camera);
+  if (k === "r") { roads = !roads; drawRoadBtns(); applyRoads(); }
+});
+</script>
+</body>
+</html>
