@@ -36,6 +36,34 @@ color ramp, and compositing method are fixed.
 
 ---
 
+## Terrain, illumination, and north-facing slopes
+
+The index is not corrected for the shape of the ground, and it is worth knowing what that means
+before reading too much into the steep parts of the basin.
+
+A satellite measures light reflected back toward it, and how much light a patch of ground receives
+depends on the angle between that surface and the sun. Two slopes carrying identical vegetation
+return different amounts of light if they face different directions. EVI is a ratio between
+spectral bands, which cancels much of this — a shaded slope is darker in every band at once, and
+dividing one band by another removes a good deal of the common factor — but it does not cancel all
+of it. On steep, north-facing ground, EVI is expected to read somewhat low, measuring the
+illumination as much as the vegetation.
+
+This scene was acquired with the sun about 70° above the horizon, in the southeast. That is high,
+and high sun is forgiving: most of the watershed is lit close to straight on, and genuine shadow is
+confined to the steepest north-facing terrain. This is a caution for the steep ground, not a
+correction the whole map needs. The magnitude has not been measured for this watershed.
+
+The shaded relief is useful here beyond its appearance. It is derived from a digital elevation
+model, independently of the imagery, so it shows where the ground is steep and which way it faces —
+which is exactly where the caveat above applies. Raising terrain strength brings out the rugged
+parts of the basin, and flat ground carries no such bias. One caution in reading it: the relief is
+lit from a fixed direction chosen for legibility, not from the sun's actual position at
+acquisition, so it is a picture of steepness and aspect rather than of what was in shadow that
+morning.
+
+---
+
 ## Data provenance
 
 | | |
@@ -56,7 +84,7 @@ color ramp, and compositing method are fixed.
   acquired on a different date, and so appears as a gap rather than a seam.
 - **Topographic shadow is retained, not masked.** The Sentinel-2 L2A Scene Classification Layer
   flags dark north-facing slopes as "dark area" (class 2); removing them would excise much of the
-  terrain this map is intended to show. North-facing aspects read correspondingly darker.
+  terrain this map is intended to show.
 - **EVI saturates over dense canopy.** Differences among the darkest greens are less meaningful
   than differences across the mid-range.
 
