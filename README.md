@@ -19,9 +19,6 @@ watershed containing the Nichols and McClure reservoirs. A single frame spans bo
 gradient, from the arid corridor running down through Santa Fe to the forested headwaters at the
 crest.
 
-Color runs from warm tones to green as vigor increases, and lightens toward the green end; both hue
-and lightness carry the value.
-
 ## Controls
 
 | Control | | Effect |
