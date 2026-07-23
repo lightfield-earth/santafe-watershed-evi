@@ -83,7 +83,10 @@
     #ticks b { font-weight: 600; }
 
     .k { display: block; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
-    .val { font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
+    /* font-size stated, not inherited: the value used to sit INSIDE the .k label and pick up its
+       12px. As a sibling in the row it inherits from the body instead, which silently set it at
+       16px and left the number looming over its own label. */
+    .val { font-size: 12px; font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
     /* display:block is load-bearing, not tidiness. A range input is inline-block by default, so
        it sits on a text baseline and carries the line box's descender space beneath it — about
        5px of phantom gap that belongs to no margin and cannot be seen in the CSS. It made the
