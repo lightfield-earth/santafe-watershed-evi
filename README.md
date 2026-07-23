@@ -3,6 +3,8 @@
 Vegetation vigor across the **upper Santa Fe River watershed**, measured from a single cloud-free
 Sentinel-2 scene and draped over Copernicus GLO-30 shaded relief.
 
+**Live at [santafe-evi.lightfield.earth](https://santafe-evi.lightfield.earth/).**
+
 An interactive map. Two things are adjustable — terrain strength and road visibility — and
 everything else is frozen at publish time, deliberately.
 
@@ -45,8 +47,8 @@ published camera on load.
 ## Why it looks the way it does
 
 Two decisions here were settled by measurement rather than taste, in the experiment that produced
-this map ([`../../evi-perceptual-experiment`](../../evi-perceptual-experiment), `docs/FINDINGS.md`).
-Both look like odd choices until you know why:
+this map — `evi-perceptual-experiment`, a private LightField repo whose `docs/FINDINGS.md` carries
+the measurements in full. Both look like odd choices until you know why:
 
 **1. The palette is not isoluminant, and the tilt has a sign.** Human edge detection is
 overwhelmingly luminance-driven, so a constant-lightness ramp removes the channel vision uses to
@@ -109,8 +111,7 @@ python3 -m http.server 8000
 
 ## Regenerating
 
-This directory is built by the tuning harness in
-[`../../evi-perceptual-experiment`](../../evi-perceptual-experiment):
+This directory is built by the tuning harness in `evi-perceptual-experiment` (private):
 
 ```sh
 # in that repo, serve the harness and tune until you like it
@@ -136,9 +137,17 @@ node test_harness.mjs ../published-maps/santafe-watershed-evi/index.html
 
 ## Deploying
 
-Static hosting, no build step. For GitHub Pages, add a `CNAME` file with the target subdomain,
-point a DNS CNAME record at the Pages host, and enable Pages on the default branch at root — the
-same arrangement as the other maps in `published-maps/`.
+Static hosting, no build step. This map is served by **GitHub Pages** from `main` at root, at
+[santafe-evi.lightfield.earth](https://santafe-evi.lightfield.earth/) — the same arrangement as the
+other maps in `published-maps/`:
+
+| | |
+|---|---|
+| `CNAME` | `santafe-evi.lightfield.earth`. Hand-written; never overwritten by a republish. |
+| Pages | Source `main`, path `/`. Legacy build — no Actions workflow. |
+| DNS | Cloudflare `CNAME` `santafe-evi` → `lightfield-earth.github.io`, **DNS-only (unproxied)**. Proxying breaks Pages' certificate issuance. |
+
+A republish is deployed by committing and pushing; there is nothing else to run.
 
 ---
 
