@@ -33,10 +33,11 @@ fullscreen controls are grouped at the upper left. The camera is encoded in the 
 `#zoom/lat/lng` fragment, so any view can be shared as a link; a fragment supplied on load takes
 precedence over the published camera position.
 
-On a small screen the layout differs. The panel is replaced by a bar along the bottom edge carrying
-the color ramp, which stays visible at all times. The handle at its top raises a panel holding the
-same content under two tabs, **Controls** and **About**. The zoom buttons are omitted, as pinch
-and double-tap serve the same purpose.
+On a small screen the layout differs, and the map opens on a wider view suited to the narrower
+frame. The panel is replaced by a bar along the bottom edge carrying the color ramp, which stays
+visible at all times, and the handle at its top raises a panel holding the same content under two
+tabs, **Controls** and **About**. The zoom buttons are omitted, as pinch and double-tap serve the
+same purpose.
 
 Map credits appear at the foot of the panel, under a **Credits** heading on a large screen, and
 remain visible whether **About** is open or closed.

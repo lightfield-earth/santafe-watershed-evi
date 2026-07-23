@@ -440,6 +440,13 @@ const CONFIG = {
     "zoom": 10.71,
     "bearing": 0,
     "pitch": 0
+  },
+  "cameraMobile": {
+    "center": [
+      -105.93,
+      35.6463
+    ],
+    "zoom": 9.15
   }
 };
 
@@ -618,6 +625,21 @@ const eviLayer = {
   },
 };
 
+// The breakpoint, declared here because the map needs it before it is constructed. It is about
+// ROOM, not touch: what makes the panel column untenable is 232px of it over a 393px viewport, not
+// the absence of a mouse. (Touch is asked separately, in CSS, and only changes hit targets.) The
+// height half catches the phone held sideways, which is 852px wide with no room for a tall column.
+// This string must stay identical to the media query in the stylesheet — if the two disagree, the
+// CSS hides the card while the JS leaves the panels in it, and the map loses its controls.
+const MOBILE = window.matchMedia("(max-width: 640px), (max-height: 460px)");
+
+// Two opening views. The frozen camera is framed for a map with the panel card beside it; on a
+// phone, where the panel is a bar along the bottom instead, that framing lands too close. Read at
+// call time rather than captured once, so `b` returns to the view that suits the layout you are
+// actually in. Falls back to the one camera when a publish carried no phone framing.
+const openingCamera = () =>
+  (MOBILE.matches && CONFIG.cameraMobile) ? CONFIG.cameraMobile : CONFIG.camera;
+
 // ---------------------------------------------------------------------------------------
 // `hash: true` lets a shared #zoom/lat/lon link win over the frozen camera, so a bare URL opens
 // on the published view while a deep link still works.
@@ -625,7 +647,7 @@ const eviLayer = {
 // nothing the plain view does not — but MapLibre's right-drag produces both at once, and landing
 // on it by accident leaves the map skewed with no obvious way back. Every entry point is closed:
 // pointer, touch and keyboard. maxPitch also clamps a pitch arriving via the URL hash.
-const map = new maplibregl.Map({ container: "map", style, ...CONFIG.camera, hash: true,
+const map = new maplibregl.Map({ container: "map", style, ...openingCamera(), hash: true,
   minZoom: 9, maxZoom: 17, maxPitch: 0, dragRotate: false, touchPitch: false,
   attributionControl: false });
 map.touchZoomRotate.disableRotation();
@@ -654,13 +676,7 @@ map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "
 // than clones, so listeners, the slider's value and the already-drawn ramp all survive the trip
 // and there is only ever one #terrain in the document.
 //
-// The breakpoint is about ROOM, not touch: what makes the column untenable is a 232px panel over
-// a 393px viewport, not the absence of a mouse. (Touch is asked separately, in CSS, and only
-// changes hit targets and the keyboard hints.) The height half of it catches the phone held
-// sideways, which is 852px wide and has no room for a full-height column.
-// This string must stay identical to the media query in the stylesheet — if the two disagree, the
-// CSS hides the column while the JS leaves the panels in it, and the map loses its controls.
-const MOBILE = window.matchMedia("(max-width: 640px), (max-height: 460px)");
+// MOBILE is declared up by the map, which needs it to choose an opening camera.
 const $ = (id) => document.getElementById(id);
 const [mapWrap, rightCol, legend, legendHead, legendRamp, legendNote, bar, barTop, barRamp, sheet,
        logo, creditsSection] =
@@ -820,7 +836,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") return closeSheet();
   if (e.target.matches?.("input, textarea, select")) return;
   const k = e.key.toLowerCase();
-  if (k === "b") map.easeTo(CONFIG.camera);
+  if (k === "b") map.easeTo(openingCamera());
   if (k === "r") { roads = !roads; drawRoads(); applyRoads(); }
 });
 </script>

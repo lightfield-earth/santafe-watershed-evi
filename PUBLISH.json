@@ -1,7 +1,7 @@
 {
   "generatedBy": "evi-perceptual-experiment/build_published.mjs",
-  "sourceCommit": "a4a4975",
-  "publishedAt": "2026-07-23T16:02:03.949Z",
+  "sourceCommit": "951c5f5",
+  "publishedAt": "2026-07-23T16:17:49.263Z",
   "scene": "S2C_13SDV_20260701_0_L2A",
   "aoi_huc12": "130202010102",
   "state": {
@@ -23,6 +23,13 @@
       "zoom": 10.71,
       "bearing": 0,
       "pitch": 0
+    },
+    "cameraMobile": {
+      "center": [
+        -105.93,
+        35.6463
+      ],
+      "zoom": 9.15
     }
   },
   "chromaCeiling": 0.1565
