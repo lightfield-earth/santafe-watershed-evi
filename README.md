@@ -11,8 +11,7 @@ single cloud-free Sentinel-2 scene and composited over Copernicus GLO-30 shaded 
 
 The **Enhanced Vegetation Index** quantifies how much living, photosynthesizing plant matter a
 patch of ground carries. It is computed per pixel from Sentinel-2 surface reflectance and displayed
-at the sensor's native **10 m** resolution: each pixel is an individual measurement, not an
-interpolation.
+at the sensor's native **10 m** resolution.
 
 The mapped area is **HUC12 130202010102, "Headwaters Santa Fe River"** — the 140.7 km² municipal
 watershed containing the Nichols and McClure reservoirs. A single frame spans both ends of the
