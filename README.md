@@ -40,6 +40,17 @@ frame. The panel is replaced by a bar along the bottom edge carrying the color r
 visible at all times, and the handle at its top raises a panel holding the same content under two
 tabs, **Controls** and **About**.
 
+On a touch device, tapping the map drops a pin at that point and opens a popup with its coordinates
+and a **Driving Directions** link, which opens driving directions to the point in Apple Maps, or in
+Google Maps on Android. The directions route from your current location. Tapping again moves the
+pin, and closing the popup removes it.
+
+On a touch device, a **locate** button at the upper left centers the map on your current position
+and marks it with a pulsing blue dot. A cone extends from the dot in the direction the phone is
+facing, to help you orient on the ground once the directions have brought you near a point. The
+button asks for location access — on iOS, a second prompt grants the motion access the cone needs —
+and where no compass is available the dot appears without a cone.
+
 Map credits appear at the foot of the panel, under a **Credits** heading on a large screen, and
 remain visible whether **About** is open or closed.
 
