@@ -158,6 +158,18 @@
        so the credit reads as one quiet sentence rather than a row of blue. */
     #credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
+    /* The pick-a-site popup. MapLibre's popup ships white with a sharp tip; cream-ify it to the
+       card language, same as the ctrl-group above. The tip is set for BOTH anchor orientations so
+       the pointer stays cream whether the popup floats above the pin or below it near the top edge.
+       Touch-only chrome (see the click handler), so no hover states are needed. */
+    .maplibregl-popup-content { background: var(--cream); border: 1px solid var(--hairline);
+      box-shadow: var(--shadow); border-radius: 8px; padding: 9px 11px; }
+    .maplibregl-popup-tip { border-top-color: var(--cream); border-bottom-color: var(--cream); }
+    .maplibregl-popup-close-button { color: #7a776e; }
+    .pin-coords { font-size: 11px; color: #7a776e; font-variant-numeric: tabular-nums; margin-bottom: 5px; }
+    .pin-go { display: inline-block; font-family: "Lato", sans-serif; font-weight: 700; font-size: 13px;
+      color: var(--ink); text-decoration: none; }
+
     /* There is no floating ⓘ. Attribution is a LICENSE condition — ODbL for the OpenStreetMap
        data, OpenMapTiles' own terms, ESA/Copernicus for the imagery — but MapLibre's widget is
        only one way to satisfy it, and the credits now live at the foot of the About section, which
@@ -872,6 +884,47 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   if (k === "b") map.easeTo(openingCamera());
   if (k === "r") { roads = !roads; drawRoads(); applyRoads(); }
+});
+
+// ---- pick a site, drive to it ----------------------------------------------------------
+// Tap the map to drop a pin, then hand the point to the phone's native maps app for driving
+// directions — the field use case is "find a bare spot on the map and go look at it".
+//
+// Touch only, and asked fresh at tap time rather than wired once: HOVER is the same signal the
+// zoom buttons key off, and the pin is its mirror image — it belongs where there is NO hovering
+// pointer. Reading it per-tap (as openingCamera reads MOBILE) means a device that gains a pointer
+// simply stops dropping pins, with no listener to add or remove.
+//
+// Android gets Google Maps; every other touch platform (iPhone, iPad, touch Mac) gets Apple Maps.
+// No origin in the URL, so the maps app routes from CURRENT LOCATION — "as close as I can drive".
+const directionsURL = (lat, lng) => /Android/i.test(navigator.userAgent)
+  ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
+  : `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+
+// One reusable marker and popup. Dismissing the popup clears the pin, so there is never an orphan
+// pin with no way to act on it.
+let pin = null, pinPopup = null;
+function showDirections({ lng, lat }) {
+  const url = directionsURL(lat.toFixed(6), lng.toFixed(6));
+  if (!pin) {
+    pin = new maplibregl.Marker({ color: "#5c6b4a" });          // --accent olive
+    pinPopup = new maplibregl.Popup({ offset: 28, closeOnClick: false, closeButton: true });
+    pin.setPopup(pinPopup);
+    pinPopup.on("close", () => pin.remove());
+  }
+  // A real <a href>, not a JS handler: that is what lets iOS hand the tap to the Apple Maps app.
+  // target=_blank gives Android a clean new tab and is harmless to the iOS hand-off.
+  pinPopup.setHTML(
+    `<div class="pin-coords">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>` +
+    `<a class="pin-go" href="${url}" target="_blank" rel="noopener">Driving Directions</a>`);
+  pin.setLngLat([lng, lat]).addTo(map);
+  if (!pin.getPopup().isOpen()) pin.togglePopup();
+}
+
+// `click` fires on a tap, not a drag, so pan and pinch never drop a pin.
+map.on("click", (e) => {
+  if (HOVER.matches) return;   // pointer devices: leave the map as composed today
+  showDirections(e.lngLat);
 });
 </script>
 </body>
