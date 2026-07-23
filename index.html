@@ -721,7 +721,11 @@ const fullscreenControl = CAN_FULLSCREEN
 // GeolocateControl (no deviceorientation anywhere in it), so showUserHeading would be a no-op. We
 // listen to the phone ourselves and draw the cone as a separate marker, just below.
 const geolocateControl = new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
+  // timeout so a fix that never comes fails visibly instead of spinning forever — a browser that
+  // blocks or stalls geolocation (Brave's shields, indoors with no GPS) then shows the error state
+  // rather than a button that spins with no end. maximumAge lets a recent fix lock the first time
+  // instantly; watchPosition refines it from there, so the staleness only ever shows for a moment.
+  positionOptions: { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
   fitBoundsOptions: { maxZoom: 16 },   // field-close on first fix, still short of the map's 17 ceiling
   trackUserLocation: true,
   showUserLocation: true });
