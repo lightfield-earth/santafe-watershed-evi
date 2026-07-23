@@ -170,6 +170,21 @@
     .pin-go { display: inline-block; font-family: "Lato", sans-serif; font-weight: 700; font-size: 13px;
       color: var(--ink); text-decoration: none; }
 
+    /* The orientation cone. This MapLibre carries no heading indicator of its own — the
+       GeolocateControl draws only the dot — so the cone is our element on its own Marker (see the
+       module). A translucent wedge, opaque at the person and fading out, so a glance says which way
+       you face. #1da1f2 is MapLibre's own dot blue: the cone reads as part of the same "you", not
+       the map's olive. The apex sits at the element's CENTRE — clip-path (50% 50%) — because the
+       marker is centred on the fix and rotates about that centre, so the point stays pinned to you
+       while the fan swings. Hidden by default; the module fades it in only when a live compass
+       heading exists, and holds it flat (pointer-events: none) so a tap still reaches the map. */
+    .heading-cone {
+      width: 82px; height: 180px; pointer-events: none;
+      opacity: 0; transition: opacity .18s ease-out;
+      background: linear-gradient(to top,
+        rgba(29,161,242,.8) 50%, rgba(29,161,242,.8) 66%, rgba(29,161,242,0) 100%);
+      clip-path: polygon(50% 50%, 0 0, 100% 0); }
+
     /* There is no floating ⓘ. Attribution is a LICENSE condition — ODbL for the OpenStreetMap
        data, OpenMapTiles' own terms, ESA/Copernicus for the imagery — but MapLibre's widget is
        only one way to satisfy it, and the credits now live at the foot of the About section, which
@@ -696,6 +711,95 @@ const fullscreenControl = CAN_FULLSCREEN
   ? new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") })
   : null;
 
+// "Where am I, and which way am I pointing?" — the companion to the tap-for-directions pin. You
+// drive to a dropped point with the maps app, then this puts your live position on the map and fans
+// a cone the way the phone is facing, so you can turn on the spot to line the two up. Touch only,
+// like the pin: a GPS and a magnetometer are a phone's to give, and a mouse has neither.
+//
+// The control gives the button, its state machine, the pulsing dot and the accuracy ring — the
+// "where am I" half. The "which way" half is ours: this build of MapLibre carries NO compass in the
+// GeolocateControl (no deviceorientation anywhere in it), so showUserHeading would be a no-op. We
+// listen to the phone ourselves and draw the cone as a separate marker, just below.
+const geolocateControl = new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  fitBoundsOptions: { maxZoom: 16 },   // field-close on first fix, still short of the map's 17 ceiling
+  trackUserLocation: true,
+  showUserLocation: true });
+
+// ---- the orientation cone -----------------------------------------------------------------
+// One reusable Marker holds the wedge, centred on the fix and rotated by the compass. The map is
+// locked north-up, so a rotation equal to the heading IS the true bearing — no map turn to subtract.
+// Anchored centre (the default) so the apex stays pinned to the person while the fan swings.
+const coneEl = Object.assign(document.createElement("div"), { className: "heading-cone" });
+const coneMarker = new maplibregl.Marker({ element: coneEl, rotationAlignment: "map" });
+let coneOnMap = false, locating = false, heading = null;
+
+// Shown only when BOTH hold: geolocation is live (the dot is up) AND we have a heading. A cone with
+// no fix would float; a fix with no compass should read as the plain dot, not a wedge frozen at the
+// last angle it saw.
+const renderCone = () => {
+  const show = locating && heading != null;
+  coneEl.style.opacity = show ? "1" : "0";
+  if (show) coneMarker.setRotation(heading);
+};
+
+// iOS gates the magnetometer behind a permission that must be asked from inside a user gesture, so
+// it rides the same tap that starts geolocation (wired onto the control's button, below). Elsewhere
+// the listener just attaches. Prefer the absolute frame where the platform offers it (Android's
+// true north); fall back to plain deviceorientation, whose webkitCompassHeading is already true
+// north on iOS. alpha is counter-clockwise, so a compass bearing is 360 − alpha.
+let compassAsked = false, listening = false;
+const onOrient = (e) => {
+  let h = null;
+  if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;
+  else if (e.absolute && typeof e.alpha === "number") h = (360 - e.alpha) % 360;
+  if (h == null || Number.isNaN(h)) return;
+  heading = h;
+  renderCone();
+};
+const listen = () => {
+  if (listening) return;
+  listening = true;
+  window.addEventListener(
+    "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", onOrient);
+};
+const startCompass = () => {
+  if (compassAsked) return;
+  compassAsked = true;
+  const DOE = window.DeviceOrientationEvent;
+  if (DOE && typeof DOE.requestPermission === "function")
+    DOE.requestPermission().then((r) => { if (r === "granted") listen(); }).catch(() => {});
+  else listen();
+};
+
+// syncControls rebuilds the button each time it runs, so wire fresh — idempotent per button via a
+// data flag. The button's own class is the honest on/off signal (active or background means the dot
+// is up; the -error variants and the plain OFF state mean it is not), so a MutationObserver on it
+// drives `locating` and keeps the cone exactly in step with the dot.
+function wireGeolocate() {
+  const btn = map.getContainer().querySelector(".maplibregl-ctrl-geolocate");
+  if (!btn || btn.dataset.coneWired) return;
+  btn.dataset.coneWired = "1";
+  btn.addEventListener("click", startCompass);
+  const readState = () => {
+    const c = btn.classList;
+    locating = (c.contains("maplibregl-ctrl-geolocate-active") ||
+                c.contains("maplibregl-ctrl-geolocate-background")) &&
+               !c.contains("maplibregl-ctrl-geolocate-active-error") &&
+               !c.contains("maplibregl-ctrl-geolocate-background-error");
+    renderCone();
+  };
+  new MutationObserver(readState).observe(btn, { attributes: true, attributeFilter: ["class"] });
+  readState();
+}
+
+// Every fix moves the cone to the new spot (and adds it the first time there is one to place it at).
+geolocateControl.on("geolocate", (p) => {
+  coneMarker.setLngLat([p.coords.longitude, p.coords.latitude]);
+  if (!coneOnMap) { coneMarker.addTo(map); coneOnMap = true; }
+  renderCone();
+});
+
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-left");
 // No AttributionControl. The credits are the ATTRIB constant, shown at the foot of the About
 // section — see the note in the stylesheet for why that still satisfies the licenses.
@@ -764,9 +868,16 @@ function syncControls() {
   const wanted = [
     [navControl, !MOBILE.matches && HOVER.matches],
     [fullscreenControl, !MOBILE.matches && CAN_FULLSCREEN],
+    // Geolocate is the touch counterpart: it wants a phone's sensors, not screen room, so it keys
+    // off the SAME signal as the directions pin (!HOVER) rather than MOBILE. That also settles the
+    // corner — on every device that shows it (a bare phone, a bare iPad) the other two are absent,
+    // so top-left is free and it sits there alone. Added last so that on the rare device carrying
+    // both it falls below them rather than reordering the pair.
+    [geolocateControl, !HOVER.matches],
   ];
   for (const [c] of wanted) if (c && map.hasControl(c)) map.removeControl(c);
   for (const [c, want] of wanted) if (c && want) map.addControl(c, "top-left");
+  wireGeolocate();   // re-attach the cone's compass + on/off wiring to the freshly built button
 }
 HOVER.addEventListener("change", syncControls);
 
