@@ -141,7 +141,7 @@
     .meta { color: #7a776e; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
     /* Four lines on the card, where the measure is 206px and a run-on of five credits wrapped into
        an unreadable block: what is being credited and who holds it each get their own line. The
-       phone, with the width to spare, sets the same markup as two — see the mobile block. */
+       phone, with the width to spare, joins only the rights-holders — see the mobile block. */
     #credits { margin: 0; }
     #credits .cg, #credits .cg span { display: block; }
 
@@ -282,11 +282,12 @@
       #sheet #legend-note { display: inline; color: inherit; font-size: inherit;
                             line-height: inherit; margin: 0; }
 
-      /* Two lines here rather than the card's four: the phone has three times the measure, so the
-         sources sit on one line and the copyrights on the next, which is the split that means
-         something. Same markup, regrouped by display alone. */
-      #sheet #credits .cg span { display: inline; }
-      #sheet #credits .cg span + span::before { content: " · "; }
+      /* Three lines here rather than the card's four. The phone has three times the measure, so
+         the two rights-holders share a line — but the source credits keep one each, because they
+         name different instruments and reading them as one run-on sentence invents a thing that
+         is not there. Same markup either way; only `display` differs. */
+      #sheet #credits .cg-rights span { display: inline; }
+      #sheet #credits .cg-rights span + span::before { content: " · "; }
 
       /* Lift MapLibre's own bottom chrome clear of the bar. */
       .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: var(--bar-h); }
@@ -481,15 +482,20 @@ const HILL_TILES = "https://tiles.lightfield.earth/hillshade_tiles_planet_z12_we
 // Copernicus Sentinel data <year>" for adapted data, and an EVI is adapted data — that full notice
 // lives in the published README's "Sources and license", which is also where the DEM's full notice
 // is. If you are tightening attribution later, this line is the one to revisit first.
-const CREDITS = [
-  ["Terrain: Copernicus WorldDEM-30 © DLR/Airbus (EU/ESA)",
-   "Source Imagery: Copernicus Sentinel-2 L2A (ESA)"],
-  ["© OpenMapTiles", "© OpenStreetMap contributors"],
-];
+// Keyed rather than positional: the two groups are laid out differently on a phone, and the
+// stylesheet says which is which by name instead of by counting children.
+const CREDITS = {
+  // What is credited. A line each in both layouts — these name distinct instruments, and running
+  // them together reads as one long credit for something that does not exist.
+  sources: ["Terrain: Copernicus WorldDEM-30 © DLR/Airbus (EU/ESA)",
+            "Source Imagery: Copernicus Sentinel-2 L2A (ESA)"],
+  // Who holds the rights. Short enough to share a line where there is width for it.
+  rights: ["© OpenMapTiles", "© OpenStreetMap contributors"],
+};
 // The same credits as one string, for the hillshade source's own `attribution`. Nothing renders it
 // today — there is no AttributionControl — but a source that does not declare what it owes is a
 // trap for whoever adds one back.
-const ATTRIB = CREDITS.flat().join(" · ");
+const ATTRIB = Object.values(CREDITS).flat().join(" · ");
 
 // The two live values, seeded from the freeze.
 let shade = CONFIG.shade;
@@ -712,8 +718,9 @@ renderSheet();
 
 // One span per credit inside one per group; which of those two becomes a line is left entirely to
 // CSS, so the phone regroups the same markup without a second copy of the data.
-$("credits").innerHTML = CREDITS
-  .map((g) => `<span class="cg">${g.map((c) => `<span>${c}</span>`).join("")}</span>`).join("");
+$("credits").innerHTML = Object.entries(CREDITS)
+  .map(([k, g]) => `<span class="cg cg-${k}">${g.map((c) => `<span>${c}</span>`).join("")}</span>`)
+  .join("");
 
 // The About disclosure. Collapsed at rest: it is the tallest thing on the card and the least often
 // read, and the credit line beneath it stays out here where one click still reaches it.
