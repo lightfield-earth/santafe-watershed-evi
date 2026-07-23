@@ -19,8 +19,8 @@ watershed containing the Nichols and McClure reservoirs. A single frame spans bo
 gradient, from the arid corridor running down through Santa Fe to the forested headwaters at the
 crest.
 
-Color runs from warm tones to green as vigor increases, and lightens toward the green end. The ramp
-is deliberately not isoluminant; see [Design notes](#design-notes) for why.
+Color runs from warm tones to green as vigor increases, and lightens toward the green end; both hue
+and lightness carry the value.
 
 ## Controls
 
@@ -37,23 +37,6 @@ takes precedence over the published camera position.
 
 Terrain strength and road visibility are the only adjustable parameters. The transfer function,
 color ramp, and compositing method are fixed.
-
----
-
-## Design notes
-
-Two aspects of the rendering are deliberate, and both depart from common practice.
-
-**The color ramp is not isoluminant.** Human edge detection is predominantly luminance-driven, so a
-constant-lightness ramp withholds the very signal the visual system uses to locate boundaries. In
-this watershed, **73% of the strongest EVI gradients fall within the flattest third of the
-terrain**, where no shaded relief is available to supply an edge in its place. The ramp therefore
-increases in lightness as EVI increases.
-
-**The light end of the ramp is placed at high EVI rather than low.** Shaded relief is applied
-multiplicatively, so the luminance range a pixel receives from the terrain is proportional to the
-lightness it already carries. Relief in this watershed coincides with high EVI, so placing the
-light end there is what resolves structure in the headwaters.
 
 ---
 
