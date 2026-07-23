@@ -328,12 +328,21 @@ const eviLayer = {
 // ---------------------------------------------------------------------------------------
 // `hash: true` lets a shared #zoom/lat/lon link win over the frozen camera, so a bare URL opens
 // on the published view while a deep link still works.
+// Camera is locked flat and north-up. Nothing here is 3D, so a pitched or rotated view shows
+// nothing the plain view does not — but MapLibre's right-drag produces both at once, and landing
+// on it by accident leaves the map skewed with no obvious way back. Every entry point is closed:
+// pointer, touch and keyboard. maxPitch also clamps a pitch arriving via the URL hash.
 const map = new maplibregl.Map({ container: "map", style, ...CONFIG.camera, hash: true,
-  minZoom: 9, maxZoom: 17, attributionControl: false });
+  minZoom: 9, maxZoom: 17, maxPitch: 0, dragRotate: false, touchPitch: false,
+  attributionControl: false });
+map.touchZoomRotate.disableRotation();
+map.keyboard.disableRotation();
 
 // Controls go top-LEFT, opposite the panel column. The bottom-left corner is the logo's and the
 // scale bar's; stacking the panels there too put all four in the same corner.
-map.addControl(new maplibregl.NavigationControl({ showZoom: true, showCompass: true }), "top-left");
+// No compass: with rotation locked the map is always north-up, so the button could only ever be
+// a no-op pointing at a bearing that cannot change.
+map.addControl(new maplibregl.NavigationControl({ showZoom: true, showCompass: false }), "top-left");
 map.addControl(new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") }), "top-left");
 
 // Collapse the column to reveal more map. Lifted from ecoregions-terrain-map/index.html.

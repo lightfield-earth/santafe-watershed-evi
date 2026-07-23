@@ -27,9 +27,12 @@ crest.
 | **Reset view** | <kbd>b</kbd> | Returns to the published camera position. |
 | **☰** | | Collapses the control panels. |
 
-Zoom, compass and fullscreen controls are grouped at the upper left. The camera is encoded in the
-URL as a `#zoom/lat/lng` fragment, so any view can be shared as a link; a fragment supplied on load
-takes precedence over the published camera position.
+Zoom and fullscreen controls are grouped at the upper left. The camera is encoded in the URL as a
+`#zoom/lat/lng` fragment, so any view can be shared as a link; a fragment supplied on load takes
+precedence over the published camera position.
+
+The view is always flat and north-up. Nothing mapped here is three-dimensional, so tilting or
+rotating would show nothing the plain view does not, and both gestures are disabled.
 
 Terrain strength and road visibility are the only adjustable parameters. The transfer function,
 color ramp, and compositing method are fixed.
