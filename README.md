@@ -60,10 +60,9 @@ correction the whole map needs. The magnitude has not been measured for this wat
 The shaded relief is useful here beyond its appearance. It is derived from a digital elevation
 model, independently of the imagery, so it shows where the ground is steep and which way it faces —
 which is exactly where the caveat above applies. Raising terrain strength brings out the rugged
-parts of the basin, and flat ground carries no such bias. One caution in reading it: the relief is
+parts of the basin, and flat ground carries no such bias. One interpretation caution: the relief is
 lit from a fixed direction chosen for legibility, not from the sun's actual position at
-acquisition, so it is a picture of steepness and aspect rather than of what was in shadow that
-morning.
+acquisition, and so depicts steepness and aspect rather than what was in shadow that morning.
 
 ---
 
