@@ -54,9 +54,9 @@ color ramp, and compositing method are fixed.
 - **A narrow western sliver is absent.** The area of interest straddles MGRS tiles, and 13SDV
   covers 99.1% of it. The remainder is left as nodata rather than mosaicked from a second tile
   acquired on a different date, and so appears as a gap rather than a seam.
-- **Topographic shadow is retained, not masked.** Sentinel-2 scene classification flags dark
-  north-facing slopes as "dark area"; removing them would excise much of the terrain this map is
-  intended to show. North-facing aspects read correspondingly darker.
+- **Topographic shadow is retained, not masked.** The Sentinel-2 L2A Scene Classification Layer
+  flags dark north-facing slopes as "dark area" (class 2); removing them would excise much of the
+  terrain this map is intended to show. North-facing aspects read correspondingly darker.
 - **EVI saturates over dense canopy.** Differences among the darkest greens are less meaningful
   than differences across the mid-range.
 
