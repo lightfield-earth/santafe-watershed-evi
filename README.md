@@ -22,14 +22,24 @@ crest.
 
 | Control | | Effect |
 |---|---|---|
-| **Terrain strength** | | Weight of the shaded relief in the composite. At zero the relief is absent and the index is shown alone. |
-| **Roads and road labels** | <kbd>r</kbd> | Off by default, as roads occlude the data. Water, terrain and place labels are shown in either state. |
-| **Reset view** | <kbd>b</kbd> | Returns to the published camera position. |
-| **☰** | | Collapses the control panels. |
+| **Terrain Strength** | | Weight of the shaded relief in the composite. At zero the relief is absent and the index is shown alone. |
+| **Road Network** | | Off by default, as roads occlude the data. Water, terrain and place labels are shown in either state. |
 
-Zoom and fullscreen controls are grouped at the upper left. The camera is encoded in the URL as a
+Two keyboard shortcuts: <kbd>r</kbd> toggles the road network, and <kbd>b</kbd> returns the camera
+to the published view.
+
+The panel sits at the right, with **About** opening and closing within it. Zoom and
+fullscreen controls are grouped at the upper left. The camera is encoded in the URL as a
 `#zoom/lat/lng` fragment, so any view can be shared as a link; a fragment supplied on load takes
 precedence over the published camera position.
+
+On a small screen the layout differs. The panel is replaced by a bar along the bottom edge carrying
+the color ramp, which stays visible at all times. The handle at its top raises a panel holding the
+same content under two tabs, **Controls** and **About**. The zoom buttons are omitted, as pinch
+and double-tap serve the same purpose.
+
+Map credits appear at the foot of the panel, under a **Credits** heading on a large screen, and
+remain visible whether **About** is open or closed.
 
 The view is always flat and north-up. Nothing mapped here is three-dimensional, so tilting or
 rotating would show nothing the plain view does not, and both gestures are disabled.
@@ -84,8 +94,8 @@ acquisition, and so depicts steepness and aspect rather than what was in shadow 
   weeks after this scene was acquired on 1 July 2026, so the map records dry-season conditions and
   understates the green-up that follows.
 - **A narrow western sliver is absent.** The area of interest straddles MGRS tiles, and 13SDV
-  covers 99.1% of it. The remainder is left as nodata rather than mosaicked from a second tile
-  acquired on a different date, and so appears as a gap rather than a seam.
+  covers 99.1% of it. The remainder is left as nodata rather than mosaicked from a second
+  tile acquired on a different date, and so appears as a gap rather than a seam.
 - **Topographic shadow is retained, not masked.** The Sentinel-2 L2A Scene Classification Layer
   flags dark north-facing slopes as "dark area" (class 2); removing them would excise much of the
   terrain this map is intended to show.
@@ -95,8 +105,16 @@ acquisition, and so depicts steepness and aspect rather than what was in shadow 
 
 ## Sources and license
 
-- **Imagery** — Sentinel-2 L2A © ESA, obtained via Element 84 Earth Search. Free and open under the
+Both satellite datasets are modified here — the elevation model is rendered to shaded relief, and
+the imagery is reduced to an index — so each carries the notice its licence prescribes for adapted
+data. The map itself shows these in short form.
+
+- **Imagery** — Sentinel-2 L2A, obtained via Element 84 Earth Search. "Contains modified
+  Copernicus Sentinel data 2026". Free and open under the
   [Copernicus data policy](https://sentinels.copernicus.eu/web/sentinel/terms-conditions).
+- **Terrain** — shaded relief produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and
+  © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and
+  ESA; all rights reserved. (The elevation model reaches Copernicus through a DLR/Airbus mission,
+  TanDEM-X; the European Union and ESA distribute it but hold no rights in it.)
 - **Watershed boundary** — USGS Watershed Boundary Dataset (public domain).
-- **Terrain** — hillshade derived from the Copernicus GLO-30 DEM.
 - **Basemap** — © OpenMapTiles © OpenStreetMap contributors.

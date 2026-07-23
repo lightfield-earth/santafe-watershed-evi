@@ -28,7 +28,12 @@
             --accent: #5c6b4a; --sunk: #e3e0d9; }
     body { margin: 0; font-family: "Open Sans", system-ui, sans-serif; color: var(--ink); }
     /* the wrapper is what goes fullscreen, so the overlays come along with it */
-    #map-wrap { position: absolute; inset: 0; background: var(--cream); }
+    /* overflow:hidden because the phone sheet parks itself BELOW the viewport when closed
+       (`transform: translateY(100%)`), and a transform still counts toward scrollable overflow.
+       Without this the page grows a scrollbar whose 15px appear and disappear as the sheet opens
+       and closes — which shifts the whole bar, and the handle with it, sideways on every tap. On a
+       phone it also makes the map page itself scroll, revealing the parked sheet. */
+    #map-wrap { position: absolute; inset: 0; overflow: hidden; background: var(--cream); }
     #map { position: absolute; inset: 0; }
 
     .panel { background: var(--cream); border: 1px solid var(--hairline);
@@ -40,17 +45,33 @@
        column on that side lands on top of both. The column is 232px of content and carries no
        padding of its own — its children are stretched to that width including their border, so
        232px really is the footprint.
-       The column stops short of the bottom rather than running the full height, which leaves the
-       lower-right corner to the attribution — so the ⓘ sits in the true corner and nothing has to
-       dodge sideways. --col-foot is that reserved strip: the collapsed ⓘ plus its margin plus a
-       gap. Derive anything that has to clear the column from these, never hand-count. */
-    :root { --col-w: 232px; --col-foot: 46px; }
-    #right-col { position: absolute; z-index: 1; top: 10px; right: 10px; width: var(--col-w);
-                 max-height: calc(100% - 10px - var(--col-foot)); overflow-y: auto;
-                 overscroll-behavior: contain;
-                 display: flex; flex-direction: column; gap: 10px;
-                 transition: opacity .18s ease, transform .18s ease; }
-    #right-col.hidden { opacity: 0; transform: translateX(8px); pointer-events: none; }
+
+       The card does not collapse, and does not need to. Folding About away leaves roughly 360px
+       of quiet cream in one corner — less than the collapse control plus its own affordance was
+       worth. An earlier version had a tab on the outer edge that slid the whole card off-screen;
+       it worked, but it asked the viewer to manage a panel that was no longer in the way.
+       Anything that must clear the card derives from --col-w. */
+    :root { --col-w: 232px; }
+    /* border-box so --col-w is the FOOTPRINT, not the text measure — the card carries the padding
+       now that it is one card rather than three. (Text works out at 232 − 24 padding − 2 border =
+       206px, exactly what the three separate cards gave.) */
+    #right-col { box-sizing: border-box; position: absolute; z-index: 1; top: 10px; right: 10px;
+                 width: var(--col-w); max-height: calc(100% - 20px);
+                 overflow-y: auto; overscroll-behavior: contain; }
+    /* ONE card, not a stack of three. The legend, the controls and the prose are three parts of a
+       single statement about one map — as separate cards they were three borders, three shadows
+       and three sets of padding floating over the imagery, and the 10px gaps between them bought
+       nothing. A hairline between sections says the same thing far more quietly.
+       The rule is drawn by ADJACENCY, so it exists only while the sections are siblings in this
+       column. When the phone layout moves them into the bar and the sheet they simply stop being
+       adjacent, and no override is needed to strip a border that was never applied. */
+    #right-col > div + div { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+    /* The chevron is drawn pointing UP in the markup; these turn it to face where the section will
+       move. The phone's panel uses a grab handle rather than a second arrow, so this is the only
+       one on the page. */
+    .acc svg { transform: rotate(180deg); transition: transform .22s ease; }   /* folded: opens down */
+    .acc[aria-expanded="true"] svg { transform: rotate(0deg); }
+    #sub-name, #sub-date { display: block; }
 
     h2 { margin: 0 0 6px; font-family: "Lato", sans-serif; font-weight: 700; font-size: 14px; }
     .sub { font-size: 11px; color: #6b685f; margin: -2px 0 8px; }
@@ -61,23 +82,65 @@
              margin-top: 3px; font-variant-numeric: tabular-nums; }
     #ticks b { font-weight: 600; }
 
-    label.k { display: block; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
-    .val { float: right; font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
-    input[type=range] { width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
-    .seg { display: flex; gap: 4px; margin-top: 2px; }
-    .seg button { flex: 1 1 0; font: inherit; font-size: 12px; padding: 5px 6px; border-radius: 5px;
-                  cursor: pointer; border: 1px solid var(--hairline); background: var(--sunk); color: #4b4841; }
-    .seg button.on { background: var(--accent); color: #f2f0ea; border-color: var(--accent); }
+    .k { display: block; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+    .val { font-weight: 400; color: #6b685f; font-variant-numeric: tabular-nums; }
+    /* display:block is load-bearing, not tidiness. A range input is inline-block by default, so
+       it sits on a text baseline and carries the line box's descender space beneath it — about
+       5px of phantom gap that belongs to no margin and cannot be seen in the CSS. It made the
+       space under the slider 16px against 10px above the label. */
+    input[type=range] { display: block; width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
     .grp { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--hairline); }
-    /* Shortcut hints. Quiet enough to ignore, present enough to be discoverable — an undocumented
-       key on a public map may as well not exist. */
-    kbd { font: inherit; font-size: 10px; color: #7a776e; background: var(--sunk); padding: 1px 4px;
-          border: 1px solid var(--hairline); border-radius: 3px; margin-left: 2px; }
-    .note { color: #7a776e; font-size: 11px; line-height: 1.4; margin-top: 6px; }
 
-    #about p { margin: 0 0 7px; font-size: 12px; line-height: 1.45; }
-    #about p:last-child { margin-bottom: 0; }
-    #about .meta { color: #7a776e; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    /* A binary layer either is or is not drawn, which is what a switch says in one glance and a
+       pair of labelled buttons says in two. It also frees the row: the label and the control sit
+       abreast instead of stacked, which is most of what made the phone panel tall. */
+    /* Every control's header is one of these, and min-height is what makes them interchangeable.
+       Without it a row is only as tall as its contents, so the row holding the 24px switch stood
+       taller than the plain label above it — and a label centred in a 24px row hangs 3.5px lower
+       from its rule than one that is not. Two bands, two different label offsets, which reads as
+       crooked even though every margin matches. Pin the header height and both labels sit alike. */
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+           min-height: 24px; }
+    .row .k { margin: 0; }   /* .k not label.k — the switch's label is a span, see the markup */
+    .switch { position: relative; flex: 0 0 auto; width: 40px; height: 24px; padding: 0;
+              border-radius: 12px; cursor: pointer; border: 1px solid var(--hairline);
+              background: var(--sunk); transition: background .15s ease, border-color .15s ease; }
+    .switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+                background: #fbfaf7; box-shadow: 0 1px 2px rgba(0,0,0,.28);
+                transition: transform .15s ease; }
+    .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+    .switch[aria-checked="true"] i { transform: translateX(16px); }
+    /* The visible switch is 24px tall; a thumb wants 44. Grow the hit area, not the drawing. */
+    .switch::before { content: ""; position: absolute; inset: -10px -8px; }
+    /* No shortcut hints on the controls. `r` and `b` are still bound — see the keydown handler —
+       but as shortcuts for someone who already knows them rather than as labels; the published
+       README is where they are documented now. */
+    .note { display: block; color: #7a776e; font-size: 11px; line-height: 1.4; margin-top: 6px; }
+
+    /* About is a disclosure. Its prose is the tallest thing on the card and the least often read,
+       so it folds away. Animating grid-template-rows 0fr→1fr expands to the content's OWN height
+       with nobody having to guess a max-height; the inner div is what actually clips, which is the
+       only reason for the extra wrapper. */
+    .acc { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+           padding: 0; background: none; border: none; cursor: pointer; text-align: left;
+           font-family: "Lato", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); }
+    .acc svg { flex: 0 0 auto; color: #7a776e; }
+    #about-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s ease; }
+    #about-body > div { overflow: hidden; }
+    #about.open #about-body { grid-template-rows: 1fr; }
+    #about-body p:first-child { margin-top: 7px; }
+
+    /* Scoped to the disclosure body, not to #about: the credits are a <p> inside #about on a
+       phone, and `#about p` would outrank `.meta` and set them as 12px prose. */
+    #about-body p { margin: 0 0 7px; font-size: 12px; line-height: 1.45; }
+    #about-body p:last-child { margin-bottom: 0; }
+    /* Not scoped to #about: the credits use it too, and they are their own section now. */
+    .meta { color: #7a776e; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    /* Four lines on the card, where the measure is 206px and a run-on of five credits wrapped into
+       an unreadable block: what is being credited and who holds it each get their own line. The
+       phone, with the width to spare, sets the same markup as two — see the mobile block. */
+    #credits { margin: 0; }
+    #credits .cg, #credits .cg span { display: block; }
 
     #logo { position: absolute; z-index: 1; bottom: 34px; left: 10px; padding: 10px 12px; }
     #logo img { display: block; height: 42px; width: auto; }
@@ -87,27 +150,150 @@
     .maplibregl-ctrl-group button + button { border-top: 1px solid var(--hairline); }
     .maplibregl-ctrl-scale { background: rgba(236,234,228,.85); border: 2px solid var(--hairline); border-top: none;
                              color: var(--ink); font-family: "Open Sans", sans-serif; }
-    .maplibregl-ctrl.maplibregl-ctrl-attrib { background: rgba(236,234,228,.82) !important; font-family: "Open Sans", sans-serif; }
-    .maplibregl-ctrl-attrib a { color: #6b685f; }
-    .maplibregl-ctrl-bottom-right .maplibregl-ctrl,
     .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin-bottom: 6px; }
-    .toggle-panels-btn { display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--ink); }
-    .toggle-panels-btn.is-off { color: #a09d93; }
+    /* The style's attribution strings carry their own links. They inherit the meta line's colour
+       so the credit reads as one quiet sentence rather than a row of blue. */
+    #credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
-    /* The attribution keeps MapLibre's own bottom-right position — the column reserves
-       --col-foot above it, so there is nothing to dodge and no override to get wrong.
-       (An earlier version slid it left of the column instead. If you ever reintroduce that, note
-       that a `transition` on a `var()`-derived `right` does NOT re-resolve when the variable
-       changes: the computed value stays pinned at the old number while the custom property reads
-       correctly on the same element, which looks exactly like a broken selector.) */
+    /* There is no floating ⓘ. Attribution is a LICENSE condition — ODbL for the OpenStreetMap
+       data, OpenMapTiles' own terms, ESA/Copernicus for the imagery — but MapLibre's widget is
+       only one way to satisfy it, and the credits now live at the foot of the About section, which
+       is one click behind a labelled control in both layouts. That is a judgement call: keeping a
+       persistent notice on the map is the conservative reading, so if one ever comes back, it is
+       not a bug being fixed. See ATTRIB in the module for why the line is authored. */
 
-    /* On a phone the column would eat the map. Let it share the width and cap its height so the
-       map stays the larger thing on screen; the ☰ control hides it outright. Capping the height is
-       also what keeps it off the attribution, so no horizontal shift is needed down here. */
-    @media (max-width: 560px) {
-      #right-col { width: calc(100% - 74px); max-height: 46%; }
-      #logo { bottom: 30px; }
-      #logo img { height: 32px; }
+    /* ---- phone layout ---------------------------------------------------------------------
+       A column overlaying the map is a desktop luxury. On a phone it ate the top half of the
+       screen, and hanging the legend and the controls off ONE ☰ meant hiding the thing you were
+       reading to reach the thing you wanted to change. So below the breakpoint the column is
+       retired and `applyLayout` redistributes its contents into two pieces that collapse
+       independently:
+
+         #bar    a slim strip pinned to the bottom edge, always visible, carrying the one thing
+                 the map cannot be read without — the ramp and its end values — plus the pill that
+                 opens each sheet.
+         #sheet  raises About or Display over the lower map, one at a time. Neither is on screen
+                 until asked for, and neither hides the other.
+
+       --bar-h is MEASURED off the bar at runtime (ResizeObserver, in the module) rather than
+       declared, because the bar's height follows its type. Everything that has to clear the bar —
+       the sheet, the scale bar, the attribution — derives from it. Do not hand-count it. */
+    :root { --bar-h: 0px; }
+    #bar, #sheet { display: none; }
+
+    /* Width OR height: a phone held sideways is 852px wide and 393px tall, which clears the width
+       test comfortably and would have handed a 393px-tall screen the full-height column. The
+       column needs room in both directions, so it is asked for in both. Keep this selector and the
+       `MOBILE` matchMedia in the module character-for-character identical. */
+    @media (max-width: 640px), (max-height: 460px) {
+      /* The card goes, but stays in the document: it is the staging area the sheet's sections
+         return to when the layout swings back, and a child moved OUT of a hidden parent renders
+         normally. */
+      #right-col { display: none; }
+
+      /* TWO rows, so the ramp gets the full width of the screen. Everything that is not the ramp —
+         the mark, the title, the one control that opens the panel — shares the row above it, and
+         the ramp then runs edge to edge underneath. Side-by-side buttons used to take a third of
+         the bar's width off the ramp; one chevron on the row above takes none of it. */
+      #bar { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0;
+             display: flex; flex-direction: column; gap: 4px; padding: 7px 10px;
+             background: var(--cream); border-top: 1px solid var(--hairline);
+             box-shadow: 0 -1px 6px rgba(0,0,0,.14); }
+      #bar-top { display: flex; align-items: center; gap: 8px; }
+      /* One line where the column takes three. The index's full name is not lost — it is the first
+         thing in the About tab. */
+      #bar #legend-head { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 5px; }
+      #bar #legend-head h2 { margin: 0; font-size: 13px; }
+      #bar .sub { margin: 0; }
+      #bar #sub-name { display: none; }
+      #bar #sub-date { display: inline; }
+      #bar #ramp { height: 10px; }
+
+      /* A grab handle across the top of the bar, not a chevron in its corner. A 14px arrow off to
+         one side is a small target and a quiet claim for the one control on the phone; a handle
+         centred on the bar's full width is the shape every phone already reads as "pull this up",
+         and it belongs to the whole bar rather than to the title beside it.
+         The ink is 40×5. The hit area is the ::before, which covers the bar's entire top strip —
+         the handle AND the title row — so tapping anywhere along the collapsed header opens the
+         panel. It stops short of the ramp. z-index because the strip has to sit over #bar-top,
+         which follows it in the markup and would otherwise take those taps itself. */
+      #bar-handle { align-self: center; width: 64px; height: 14px; padding: 0;
+                    background: none; border: none; cursor: pointer; }
+      #bar-handle::after { content: ""; display: block; width: 40px; height: 5px; margin: 5px auto 0;
+                           border-radius: 3px; background: #c9c6bd; transition: background .15s ease; }
+      #bar-handle[aria-expanded="true"]::after { background: var(--accent); }
+      #bar-handle::before { content: ""; position: absolute; z-index: 2; left: 0; right: 0; top: 0;
+                            height: 46px; }
+
+      /* The logo moves INTO the bar. Left floating, it would stack a third thing above the bar's
+         left corner, directly on the scale bar. */
+      #bar #logo { position: static; flex: 0 0 auto; padding: 0;
+                   background: none; border: none; box-shadow: none; }
+      #bar #logo img { height: 24px; }
+
+      #sheet { position: absolute; z-index: 2; left: 0; right: 0; bottom: var(--bar-h);
+               display: block; max-height: 55%; overflow-y: auto; overscroll-behavior: contain;
+               /* 11px at the foot, not 16: it is the space below the last control, and it reads
+                  directly against the 11px that control sits below the rule above it. The top
+                  keeps 12 — that one is the sheet's own edge above the tabs, not part of a
+                  band. */
+               padding: 12px 14px 11px;
+               background: var(--cream); border-top: 1px solid var(--hairline);
+               box-shadow: 0 -1px 6px rgba(0,0,0,.14);
+               transform: translateY(100%); transition: transform .2s ease; }
+      #sheet.open { transform: none; }
+      /* Closed, it is parked behind the bar — which hides it but leaves it tappable, hence this. */
+      #sheet:not(.open) { pointer-events: none; }
+      /* Tabs, not two buttons in the bar. One handle opens the panel and the panel decides what it
+         is showing, which keeps the bar to one control and lets the ramp have the width.
+         Underline rather than pill: these switch a view, they do not perform an action, and the
+         sheet is already a surface — a second set of filled buttons on it would be loud.
+         Set in the title's face, weight and size: a tab names the panel it is about to show, which
+         makes it a heading, and it should carry the same voice as the one in the bar below. */
+      /* 11px to match .grp's margin-top, so the slider's band sits the same distance below the
+         tab rule as it does above the next one. */
+      #sheet-tabs { display: flex; gap: 2px; margin: 0 0 11px; border-bottom: 1px solid var(--hairline); }
+      #sheet-tabs button { font-family: "Lato", sans-serif; font-weight: 700; font-size: 13px;
+                           color: #7a776e;
+                           min-height: 40px; padding: 0 14px; margin-bottom: -1px; cursor: pointer;
+                           background: none; border: none; border-bottom: 2px solid transparent; }
+      #sheet-tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+      /* The two sections take turns. Selected by ID rather than by class or element: they are
+         plain sections now that the desktop is one card, and an earlier version keyed this off
+         `.panel` — which they had stopped carrying — and silently rendered both at once. `> div`
+         would now catch the tab strip too. */
+      #sheet > #controls, #sheet > #about { display: none; }
+      #sheet > #controls.active, #sheet > #about.active { display: block; }
+
+      /* About's disclosure header is a desktop affordance: in the sheet the tab already names it,
+         and the prose is the whole reason the tab was tapped, so it is always open here. */
+      #sheet #about-toggle { display: none; }
+      /* The credits keep their lines but lose their heading: on the card Credits is a section
+         beside About, but in the tab it is a four-word label on two lines of small print. */
+      #sheet #credits-section h2 { display: none; }
+      #sheet #credits-section { margin-top: 8px; }
+      #sheet #about-body { grid-template-rows: 1fr; }
+      /* The ramp's caption is a sentence of the lede on a phone — see `applyLayout` — so it drops
+         the note styling and reads as the prose it has joined. */
+      #sheet #legend-note { display: inline; color: inherit; font-size: inherit;
+                            line-height: inherit; margin: 0; }
+
+      /* Two lines here rather than the card's four: the phone has three times the measure, so the
+         sources sit on one line and the copyrights on the next, which is the split that means
+         something. Same markup, regrouped by display alone. */
+      #sheet #credits .cg span { display: inline; }
+      #sheet #credits .cg span + span::before { content: " · "; }
+
+      /* Lift MapLibre's own bottom chrome clear of the bar. */
+      .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: var(--bar-h); }
+    }
+
+    /* Touch is a different question from width — an iPad gets the card but still has no mouse.
+       The switch and the chevrons already carry their own stretched hit areas; the slider is the
+       one control whose target is only as tall as its ink. */
+    @media (hover: none) {
+      input[type=range] { height: 26px; }
     }
   </style>
 </head>
@@ -115,49 +301,106 @@
   <div id="map-wrap">
     <div id="map"></div>
 
-    <div id="right-col">
-      <div id="legend" class="panel panel-pad">
-        <h2>Vegetation Vigor</h2>
-        <div class="sub">Enhanced Vegetation Index<br />1 July 2026</div>
-        <div id="ramp"></div>
-        <div id="ticks"><span id="t0"></span><span id="t1"></span></div>
+    <!-- Three sections of one card. Each goes somewhere different on a phone: the head and the
+         ramp into the bottom bar, the caption into the lede, the other two under the sheet's tabs.
+         They are wrapped rather than loose so `applyLayout` moves five nodes, not a dozen. -->
+    <div id="right-col" class="panel panel-pad">
+      <div id="legend">
+        <div id="legend-head">
+          <h2>Vegetation Vigor</h2>
+          <div class="sub"><span id="sub-name">Enhanced Vegetation Index</span><span id="sub-date">1 July 2026</span></div>
+        </div>
+        <div id="legend-ramp">
+          <div id="ramp"></div>
+          <div id="ticks"><span id="t0"></span><span id="t1"></span></div>
+        </div>
         <!-- Scene-relative on purpose. The ramp tops out at the basin's 98th percentile, EVI 0.44,
              which is montane conifer forest — the densest cover HERE, but well below what "closed
              canopy" means in absolute terms. Do not describe the green end as an absolute class. -->
-        <div class="note">Warm tones are sparse, dry ground; green is the basin's densest forest
-          canopy.</div>
+        <!-- A span, not a div: on a phone this becomes the closing sentence of the lede paragraph
+             rather than a caption of its own, and a block element inside a <p> would be invalid. -->
+        <span id="legend-note" class="note">Warm tones are sparse, dry ground; green is the basin's
+          densest forest canopy.</span>
       </div>
 
-      <div id="controls" class="panel panel-pad">
-        <h2>Display</h2>
-        <label class="k" for="terrain">Terrain strength<span class="val" id="terrain-val"></span></label>
+      <!-- No heading. "Terrain Strength" and "Road Network" name themselves, and on a phone this
+           section arrives under a tab already marked Controls. -->
+      <div id="controls">
+        <!-- The same .row header the switch uses, so both labels sit identically under their
+             rules. The value is a sibling rather than nested, which is what lets the row space
+             them apart instead of floating one. -->
+        <div class="row">
+          <label class="k" for="terrain">Terrain Strength</label>
+          <span class="val" id="terrain-val"></span>
+        </div>
         <input type="range" id="terrain" min="0" max="1" step="0.01" />
         <div class="grp">
-          <label class="k">Roads &amp; road labels <kbd>r</kbd></label>
-          <div class="seg" id="roads">
-            <button data-v="0">Hidden</button><button data-v="1">Visible</button>
+          <!-- A span, not a label: `for` cannot bind a <label> to a <button>, so the switch names
+               itself with aria-labelledby instead. -->
+          <div class="row">
+            <span class="k" id="roads-label">Road Network</span>
+            <button type="button" id="roads" class="switch" role="switch" aria-checked="false"
+                    aria-labelledby="roads-label"><i></i></button>
           </div>
-        </div>
-        <div class="grp">
-          <div class="seg"><button id="reset">Reset view <kbd>b</kbd></button></div>
         </div>
       </div>
 
-      <div id="about" class="panel panel-pad">
-        <h2>About this map</h2>
-        <p>The <b>Enhanced Vegetation Index</b> measures how much living, photosynthesizing plant
-          matter a patch of ground carries. It is computed from a single cloud-free Sentinel-2
-          scene and shown at the satellite's native 10&nbsp;m resolution.</p>
-        <p>The highlighted area is <b>HUC12 130202010102, "Headwaters Santa Fe River"</b> — the 140.7&nbsp;km²
-          municipal watershed encompassing Nichols and McClure reservoirs. The dry
-          corridor running down through Santa Fe and the forested headwaters at the crest are both
-          in frame, which is the contrast the map is built to show.</p>
-        <!-- Keep this caveat tight. The column scrolls once its content passes viewport height
-             minus 56px, and at 232px wide every extra wrapped line costs ~17px. Measure before
-             lengthening it; the full explanation lives in the README. -->
-        <p>The terrain is derived from the Copernicus GLO-30 elevation model. EVI is not corrected
-          for terrain variation; north-facing slopes underrepresent the true value.</p>
-        <p class="meta">S2C_13SDV_20260701_0_L2A · 1 July 2026 · 0.13% cloud · 10&nbsp;m · EPSG:32613</p>
+      <div id="about">
+        <!-- The chevron is drawn pointing UP; .acc rotates it to face where the section will
+             open. It is the only one on the page, so it lives here rather than in a constant. -->
+        <button type="button" class="acc" id="about-toggle"
+                aria-expanded="false" aria-controls="about-body"><span>About</span
+          ><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"
+            ><path d="M3.5 10.25 8 5.75l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.75"
+             stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <!-- The inner div is the thing that clips; #about-body is the grid that animates. -->
+        <div id="about-body"><div>
+          <p id="about-lede">The <b>Enhanced Vegetation Index</b> measures how much living,
+            photosynthesizing plant matter a patch of ground carries. It is computed from a single
+            cloud-free Sentinel-2 scene and shown at the satellite's native 10&nbsp;m resolution.</p>
+          <p>The highlighted area is <b>HUC12 130202010102, "Headwaters Santa Fe River"</b> — the 140.7&nbsp;km²
+            municipal watershed encompassing Nichols and McClure reservoirs. The dry
+            corridor running down through Santa Fe and the forested headwaters at the crest are both
+            in frame, which is the contrast the map is built to show.</p>
+          <!-- Keep this caveat tight. The card scrolls once its content passes viewport height
+               minus 20px, and at 206px of measure every extra wrapped line costs ~17px. Measure
+               before lengthening it; the full explanation lives in the README. -->
+          <p>The terrain is derived from the Copernicus GLO-30 elevation model. EVI is not corrected
+            for terrain variation; north-facing slopes underrepresent the true value.</p>
+          <p class="meta">S2C_13SDV_20260701_0_L2A · 1 July 2026 · 0.13% cloud · 10&nbsp;m · EPSG:32613</p>
+        </div></div>
+      </div>
+
+      <!-- A SECTION of its own, not a footnote inside About. Sitting directly under the About
+           header it read as that section's subtitle — as though Copernicus and OpenStreetMap were
+           what the map is about. As a sibling it picks up the card's own divider rule (see
+           `#right-col > div + div`) and a heading, and the break is unmistakable.
+           Being outside the disclosure also keeps the credit one click from view rather than two,
+           which is the whole basis for dropping MapLibre's ⓘ. Filled from CREDITS at module top
+           level, before the map is constructed. -->
+      <div id="credits-section">
+        <!-- h2, not the .k control label: Credits and About are peer sections of the card and
+             should read at the same level. -->
+        <h2>Credits</h2>
+        <p class="meta" id="credits"></p>
+      </div>
+    </div>
+
+    <!-- Phone chrome. Both are display:none until the mobile breakpoint, and both are EMPTY here:
+         every panel in them is moved in from #right-col at runtime, so there is exactly one copy
+         of each control in the document and no duplicate ids. See `applyLayout`. -->
+    <div id="bar">
+      <button type="button" id="bar-handle" aria-expanded="false" aria-controls="sheet"
+              aria-label="Show controls and information"></button>
+      <!-- The mark and the title share this row so that the ramp below can have the full width of
+           the screen. applyLayout moves both in; the row is empty here. -->
+      <div id="bar-top"></div>
+      <div id="bar-ramp"></div>
+    </div>
+    <div id="sheet" aria-hidden="true">
+      <div id="sheet-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="controls">Controls</button>
+        <button type="button" role="tab" data-tab="about">About</button>
       </div>
     </div>
 
@@ -198,6 +441,45 @@ const CONFIG = {
 };
 
 const HILL_TILES = "https://tiles.lightfield.earth/hillshade_tiles_planet_z12_webp/{z}/{x}/{y}.webp";
+
+// Every credit the map owes, grouped: what is being credited, then who holds the rights. The card
+// sets one line per credit and the phone one line per group — the grouping is the whole reason the
+// structure is nested rather than a flat list, and both layouts read off this same data.
+//
+// Authored rather than collected from the loaded style on purpose. The basemap's own credit lives
+// in a TileJSON fetched at runtime, so anything derived is only correct once the network says so,
+// and would render an EMPTY credit on a map that failed to load its tiles. This is a license
+// condition, not a nicety: it has to be right when things go wrong, so it depends on nothing
+// succeeding. If you add a source, add it here.
+// BOTH satellite credits are the "adapted or modified" wording, because both datasets are
+// modified here: the DEM is rendered to a hillshade, and the imagery is reduced to an index.
+// Those forms are prescribed by the respective licenses — they are not ours to shorten.
+//
+// The DEM is NOT an ESA product, whatever "Copernicus" suggests. It derives from TanDEM-X, a
+// DLR/Airbus mission; ESA and the EU distribute it under Copernicus but hold no rights in it.
+// Crediting "(ESA)" here would name the distributor and omit both copyright holders. Sentinel-2
+// is the opposite case — a genuine ESA mission — but its modified-data notice names Copernicus
+// rather than ESA, so ESA appears in neither line. That asymmetry is correct; do not tidy it.
+// Short forms, with the notices in full in the published README's "Sources and license". (EU/ESA)
+// carries "provided under COPERNICUS by the European Union and ESA"; what it must not do is stand
+// in for the copyright line, which is why DLR and Airbus are named here and not only there.
+// The Sentinel line names the mission and its processing level. "(ESA)" is accurate here in a way
+// it would NOT be one line up: Sentinel-2 is an ESA mission, whereas the DEM only passes through
+// ESA as a distributor.
+//
+// This is the short form, chosen deliberately. The Copernicus licence prescribes "Contains modified
+// Copernicus Sentinel data <year>" for adapted data, and an EVI is adapted data — that full notice
+// lives in the published README's "Sources and license", which is also where the DEM's full notice
+// is. If you are tightening attribution later, this line is the one to revisit first.
+const CREDITS = [
+  ["Terrain: Copernicus WorldDEM-30 © DLR/Airbus (EU/ESA)",
+   "Source Imagery: Copernicus Sentinel-2 L2A (ESA)"],
+  ["© OpenMapTiles", "© OpenStreetMap contributors"],
+];
+// The same credits as one string, for the hillshade source's own `attribution`. Nothing renders it
+// today — there is no AttributionControl — but a source that does not declare what it owes is a
+// trap for whoever adds one back.
+const ATTRIB = CREDITS.flat().join(" · ");
 
 // The two live values, seeded from the freeze.
 let shade = CONFIG.shade;
@@ -346,39 +628,122 @@ const map = new maplibregl.Map({ container: "map", style, ...CONFIG.camera, hash
 map.touchZoomRotate.disableRotation();
 map.keyboard.disableRotation();
 
-// Controls go top-LEFT, opposite the panel column. The bottom-left corner is the logo's and the
+// Zoom goes top-LEFT, opposite the panel column. The bottom-left corner is the logo's and the
 // scale bar's; stacking the panels there too put all four in the same corner.
 // No compass: with rotation locked the map is always north-up, so the button could only ever be
 // a no-op pointing at a bearing that cannot change.
-map.addControl(new maplibregl.NavigationControl({ showZoom: true, showCompass: false }), "top-left");
-map.addControl(new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") }), "top-left");
-
-// Collapse the column to reveal more map. Lifted from ecoregions-terrain-map/index.html.
-class TogglePanelsControl {
-  onAdd() {
-    const wrap = document.createElement("div");
-    wrap.className = "maplibregl-ctrl maplibregl-ctrl-group";
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "toggle-panels-btn";
-    btn.title = "Show/hide panels";
-    btn.setAttribute("aria-label", "Show or hide panels");
-    btn.innerHTML = "☰";
-    btn.onclick = () =>
-      btn.classList.toggle("is-off", document.getElementById("right-col").classList.toggle("hidden"));
-    wrap.appendChild(btn);
-    return wrap;
-  }
-  onRemove() {}
-}
-map.addControl(new TogglePanelsControl(), "top-left");
+//
+// These two are DESKTOP ONLY — see `applyLayout`. On a phone, pinch and double-tap are universal
+// and the +/− pair buys nothing for its corner of the map; iOS has no Fullscreen API at all, so
+// that button is either dead or a duplicate of the browser's own chrome. They stay on the desktop
+// because that is where a first-time visitor may genuinely not know the wheel zooms.
+const navControl = new maplibregl.NavigationControl({ showZoom: true, showCompass: false });
+const fullscreenControl = new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") });
 
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-left");
-map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+// No AttributionControl. The credits are the ATTRIB constant, shown at the foot of the About
+// section — see the note in the stylesheet for why that still satisfies the licenses.
+
+// ---- one document, two arrangements ------------------------------------------------------
+// The phone layout is not a restyling of the column — it takes the column apart and puts the
+// pieces in three different places. Rather than ship a second copy of the markup (two ids for
+// every control, two legends to keep in step), the nodes are MOVED: `append` relocates rather
+// than clones, so listeners, the slider's value and the already-drawn ramp all survive the trip
+// and there is only ever one #terrain in the document.
+//
+// The breakpoint is about ROOM, not touch: what makes the column untenable is a 232px panel over
+// a 393px viewport, not the absence of a mouse. (Touch is asked separately, in CSS, and only
+// changes hit targets and the keyboard hints.) The height half of it catches the phone held
+// sideways, which is 852px wide and has no room for a full-height column.
+// This string must stay identical to the media query in the stylesheet — if the two disagree, the
+// CSS hides the column while the JS leaves the panels in it, and the map loses its controls.
+const MOBILE = window.matchMedia("(max-width: 640px), (max-height: 460px)");
+const $ = (id) => document.getElementById(id);
+const [mapWrap, rightCol, legend, legendHead, legendRamp, legendNote, bar, barTop, barRamp, sheet,
+       logo, creditsSection] =
+  ["map-wrap", "right-col", "legend", "legend-head", "legend-ramp", "legend-note",
+   "bar", "bar-top", "bar-ramp", "sheet", "logo", "credits-section"].map($);
+const PANELS = { about: $("about"), controls: $("controls") };
+const tabs = [...document.querySelectorAll("#sheet-tabs button")];
+
+// The phone panel is ONE surface with two tabs, not two panels with two buttons. The bar then
+// needs a single control — the handle — and the ramp gets the whole width of the screen back.
+//
+// Both sections sit in the sheet at once and take turns being `.active` rather than being moved in
+// and out: moving one out on close would empty the sheet mid-slide, and switching tabs becomes an
+// instant swap under a sheet that never has to drop and rise.
+let sheetOpen = false, activeTab = "controls";   // Controls first — it is why the panel opens
+function renderSheet() {
+  sheet.classList.toggle("open", sheetOpen);
+  sheet.setAttribute("aria-hidden", String(!sheetOpen));
+  $("bar-handle").setAttribute("aria-expanded", String(sheetOpen));
+  for (const [k, el] of Object.entries(PANELS)) el.classList.toggle("active", k === activeTab);
+  for (const t of tabs) {
+    const on = t.dataset.tab === activeTab;
+    t.classList.toggle("on", on);
+    t.setAttribute("aria-selected", String(on));
+  }
+}
+const closeSheet = () => { sheetOpen = false; renderSheet(); };
+$("bar-handle").onclick = () => { sheetOpen = !sheetOpen; renderSheet(); };
+// A tab always opens the sheet as well as selecting: tapping one while closed can only mean
+// "show me this", and the tabs are unreachable when closed anyway.
+for (const t of tabs) t.onclick = () => { activeTab = t.dataset.tab; sheetOpen = true; renderSheet(); };
+renderSheet();
+
+// One span per credit inside one per group; which of those two becomes a line is left entirely to
+// CSS, so the phone regroups the same markup without a second copy of the data.
+$("credits").innerHTML = CREDITS
+  .map((g) => `<span class="cg">${g.map((c) => `<span>${c}</span>`).join("")}</span>`).join("");
+
+// The About disclosure. Collapsed at rest: it is the tallest thing on the card and the least often
+// read, and the credit line beneath it stays out here where one click still reaches it.
+const about = PANELS.about, aboutToggle = $("about-toggle");
+aboutToggle.onclick = () =>
+  aboutToggle.setAttribute("aria-expanded", String(about.classList.toggle("open")));
+
+let arrangedFor = null;
+function applyLayout() {
+  const m = MOBILE.matches;
+  if (m === arrangedFor) return;
+  arrangedFor = m;
+  closeSheet();
+  if (m) {
+    // The mark and the title join the chevron on the bar's top row; the ramp takes the row under
+    // it, full width. `prepend` puts them ahead of the chevron, which stays at the end.
+    barTop.append(logo, legendHead);
+    barRamp.append(legendRamp);
+    // The caption stops being a caption. With the ramp in the bar there is nothing for it to sit
+    // under, so it becomes the closing sentence of the lede — which is where it was always
+    // heading. The space is a real text node, and repeated switches only ever add whitespace that
+    // HTML collapses to the one space it renders.
+    $("about-lede").append(" ", legendNote);
+    sheet.append(PANELS.controls, PANELS.about);
+    PANELS.about.append(creditsSection);   // credits ride along into the About tab
+    for (const c of [navControl, fullscreenControl])
+      if (map.hasControl(c)) map.removeControl(c);
+  } else {
+    legend.append(legendHead, legendRamp, legendNote);
+    rightCol.append(legend, PANELS.controls, PANELS.about, creditsSection);
+    mapWrap.append(logo);
+    if (!map.hasControl(navControl)) map.addControl(navControl, "top-left");
+    if (!map.hasControl(fullscreenControl)) map.addControl(fullscreenControl, "top-left");
+  }
+  measureBar();
+}
+
+// The bar's height follows its type, and the sheet, scale bar and attribution all sit on top of
+// it — so publish the measurement rather than duplicating a guess at it in four places.
+const measureBar = () =>
+  document.documentElement.style.setProperty("--bar-h", (MOBILE.matches ? bar.offsetHeight : 0) + "px");
+new ResizeObserver(measureBar).observe(bar);
+
+MOBILE.addEventListener("change", applyLayout);
+applyLayout();
 
 map.on("load", () => {
   map.addSource("hillshade", { type: "raster", tiles: [HILL_TILES], tileSize: 512, minzoom: 0, maxzoom: 12,
-    attribution: "Hillshade: Copernicus GLO-30 · Sentinel-2 L2A (ESA) · © OpenMapTiles © OpenStreetMap" });
+    attribution: ATTRIB });
   const beforeId = map.getStyle().layers[1].id;             // just above the cream background
   // Order matters and is the whole terrain composite: insert the data first, then the hillshade
   // before the same layer, which lands it directly ON TOP of the data. The hosted tiles are black
@@ -387,8 +752,6 @@ map.on("load", () => {
   map.addLayer({ id: "hillshade", type: "raster", source: "hillshade",
     paint: { "raster-opacity": shade, "raster-resampling": "linear", "raster-fade-duration": 0 } }, beforeId);
   applyRoads();
-  // attribution starts collapsed (just the ⓘ button); expands on click
-  document.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
 });
 
 function applyRoads() {
@@ -430,12 +793,16 @@ terrain.oninput = () => {
   if (map.getLayer("hillshade")) map.setPaintProperty("hillshade", "raster-opacity", shade);
 };
 
-const roadBtns = [...document.querySelectorAll("#roads button")];
-function drawRoadBtns() { roadBtns.forEach((b) => b.classList.toggle("on", (b.dataset.v === "1") === roads)); }
-roadBtns.forEach((b) => b.onclick = () => { roads = b.dataset.v === "1"; drawRoadBtns(); applyRoads(); });
-drawRoadBtns();
+// A switch, not a pair of buttons: roads are on or they are not, and the state is the position of
+// the knob. `aria-checked` is both the accessible state and the CSS hook, so there is one source
+// of truth for what the control looks like and what it announces.
+const roadsSwitch = $("roads");
+const drawRoads = () => roadsSwitch.setAttribute("aria-checked", String(roads));
+roadsSwitch.onclick = () => { roads = !roads; drawRoads(); applyRoads(); };
+drawRoads();
 
-document.getElementById("reset").onclick = () => map.easeTo(CONFIG.camera);
+// No reset button. `b` below still does it — the control was the least-used thing on the card and
+// the shortcut costs nothing to keep.
 
 // The harness's two viewing shortcuts, carried over: `b` back to the published view, `r` roads.
 // (`c` and `t` are not here — they switch compositing and flip the tilt, both frozen at publish.)
@@ -445,10 +812,13 @@ document.getElementById("reset").onclick = () => map.easeTo(CONFIG.camera);
 // field, so typing never reaches here; the terrain slider is focusable and takes arrow keys.
 window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Before the form-field guard: Escape has to reach here from the terrain slider, which lives
+  // inside the sheet it is closing.
+  if (e.key === "Escape") return closeSheet();
   if (e.target.matches?.("input, textarea, select")) return;
   const k = e.key.toLowerCase();
   if (k === "b") map.easeTo(CONFIG.camera);
-  if (k === "r") { roads = !roads; drawRoadBtns(); applyRoads(); }
+  if (k === "r") { roads = !roads; drawRoads(); applyRoads(); }
 });
 </script>
 </body>
