@@ -664,12 +664,25 @@ map.keyboard.disableRotation();
 // No compass: with rotation locked the map is always north-up, so the button could only ever be
 // a no-op pointing at a bearing that cannot change.
 //
-// These two are DESKTOP ONLY — see `applyLayout`. On a phone, pinch and double-tap are universal
-// and the +/− pair buys nothing for its corner of the map; iOS has no Fullscreen API at all, so
-// that button is either dead or a duplicate of the browser's own chrome. They stay on the desktop
-// because that is where a first-time visitor may genuinely not know the wheel zooms.
+// Zoom is offered where there is a POINTER, not where there is width. Pinch and double-tap are
+// native to every touch screen, so the +/− pair earns nothing on one — including an iPad, which is
+// wide enough for the desktop layout and would otherwise have kept it. What the buttons are for is
+// the visitor with a mouse who may not know the wheel zooms, and `(hover: hover)` is exactly that
+// question. It also answers correctly for the odd cases either way: a touchscreen laptop reports a
+// hovering pointer and keeps them; an iPad with a trackpad attached gains one and gets them back.
+const HOVER = window.matchMedia("(hover: hover)");
 const navControl = new maplibregl.NavigationControl({ showZoom: true, showCompass: false });
-const fullscreenControl = new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") });
+// iPadOS reports `document.fullscreenEnabled === true` and hands out a `requestFullscreen` that
+// resolves having done nothing. MapLibre trusts that flag, so it renders a button that is simply
+// dead — worse than no button, because it invites a tap and answers with silence.
+//
+// `exitFullscreen` is the honest tell: iPadOS does not define it, and a platform with no way out
+// of fullscreen was never going into it. Feature-detected rather than sniffed, because an iPad
+// reports platform "MacIntel" and is indistinguishable from a desktop by name.
+const CAN_FULLSCREEN = typeof document.exitFullscreen === "function";
+const fullscreenControl = CAN_FULLSCREEN
+  ? new maplibregl.FullscreenControl({ container: document.getElementById("map-wrap") })
+  : null;
 
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-left");
 // No AttributionControl. The credits are the ATTRIB constant, shown at the foot of the About
@@ -728,6 +741,23 @@ const about = PANELS.about, aboutToggle = $("about-toggle");
 aboutToggle.onclick = () =>
   aboutToggle.setAttribute("aria-expanded", String(about.classList.toggle("open")));
 
+// Which map controls belong on screen, asked fresh each time rather than tied to the layout: the
+// two questions have different answers. The column needs ROOM; zoom needs a POINTER; fullscreen
+// needs a platform that has it.
+//
+// The group is torn down and rebuilt rather than patched, so it always ends up in a fixed order —
+// adding one control back while the other is already there stacks them in arrival order, and the
+// buttons would quietly swap places.
+function syncControls() {
+  const wanted = [
+    [navControl, !MOBILE.matches && HOVER.matches],
+    [fullscreenControl, !MOBILE.matches && CAN_FULLSCREEN],
+  ];
+  for (const [c] of wanted) if (c && map.hasControl(c)) map.removeControl(c);
+  for (const [c, want] of wanted) if (c && want) map.addControl(c, "top-left");
+}
+HOVER.addEventListener("change", syncControls);
+
 let arrangedFor = null;
 function applyLayout() {
   const m = MOBILE.matches;
@@ -746,15 +776,12 @@ function applyLayout() {
     $("about-lede").append(" ", legendNote);
     sheet.append(PANELS.controls, PANELS.about);
     PANELS.about.append(creditsSection);   // credits ride along into the About tab
-    for (const c of [navControl, fullscreenControl])
-      if (map.hasControl(c)) map.removeControl(c);
   } else {
     legend.append(legendHead, legendRamp, legendNote);
     rightCol.append(legend, PANELS.controls, PANELS.about, creditsSection);
     mapWrap.append(logo);
-    if (!map.hasControl(navControl)) map.addControl(navControl, "top-left");
-    if (!map.hasControl(fullscreenControl)) map.addControl(fullscreenControl, "top-left");
   }
+  syncControls();
   measureBar();
 }
 

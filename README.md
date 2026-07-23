@@ -28,16 +28,17 @@ crest.
 Two keyboard shortcuts: <kbd>r</kbd> toggles the road network, and <kbd>b</kbd> returns the camera
 to the published view.
 
-The panel sits at the right, with **About** opening and closing within it. Zoom and
-fullscreen controls are grouped at the upper left. The camera is encoded in the URL as a
+The panel sits at the right, with **About** opening and closing within it. Zoom and fullscreen
+controls are grouped at the upper left, and each appears only where it is of use: the zoom buttons
+with a mouse or trackpad, since pinch and double-tap do the same work on a touch screen, and
+fullscreen only in browsers that implement it. The camera is encoded in the URL as a
 `#zoom/lat/lng` fragment, so any view can be shared as a link; a fragment supplied on load takes
 precedence over the published camera position.
 
 On a small screen the layout differs, and the map opens on a wider view suited to the narrower
 frame. The panel is replaced by a bar along the bottom edge carrying the color ramp, which stays
 visible at all times, and the handle at its top raises a panel holding the same content under two
-tabs, **Controls** and **About**. The zoom buttons are omitted, as pinch and double-tap serve the
-same purpose.
+tabs, **Controls** and **About**.
 
 Map credits appear at the foot of the panel, under a **Credits** heading on a large screen, and
 remain visible whether **About** is open or closed.
