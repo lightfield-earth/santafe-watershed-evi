@@ -80,16 +80,19 @@ morning.
 
 **Limitations to consider before drawing conclusions:**
 
-- **A single scene from a single day.** This is a snapshot, not a time series or a seasonal
-  composite. Mid-monsoon greenness on 1 July 2026 is not representative of the annual mean.
+- **A single scene from a single day, and it predates the monsoon.** This is a snapshot, not a time
+  series or a seasonal composite. The 2026 monsoon reached northern New Mexico in mid-July, two
+  weeks after this scene was acquired on 1 July 2026, so the map records dry-season conditions and
+  understates the green-up that follows.
 - **A narrow western sliver is absent.** The area of interest straddles MGRS tiles, and 13SDV
   covers 99.1% of it. The remainder is left as nodata rather than mosaicked from a second tile
   acquired on a different date, and so appears as a gap rather than a seam.
 - **Topographic shadow is retained, not masked.** The Sentinel-2 L2A Scene Classification Layer
   flags dark north-facing slopes as "dark area" (class 2); removing them would excise much of the
   terrain this map is intended to show.
-- **EVI saturates over dense canopy.** Differences among the darkest greens are less meaningful
-  than differences across the mid-range.
+- **The color ramp is clipped at the top of the distribution.** It saturates at the basin's 98th
+  percentile, EVI 0.44, so the ~2% of pixels above that are all drawn in the same color and
+  differences among the darkest greens cannot be read from the map.
 
 ## Sources and license
 

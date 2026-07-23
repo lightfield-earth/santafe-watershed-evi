@@ -121,7 +121,11 @@
         <div class="sub">Enhanced Vegetation Index<br />1 July 2026</div>
         <div id="ramp"></div>
         <div id="ticks"><span id="t0"></span><span id="t1"></span></div>
-        <div class="note">Warm tones are sparse, dry ground; green is dense closed canopy.</div>
+        <!-- Scene-relative on purpose. The ramp tops out at the basin's 98th percentile, EVI 0.44,
+             which is montane conifer forest — the densest cover HERE, but well below what "closed
+             canopy" means in absolute terms. Do not describe the green end as an absolute class. -->
+        <div class="note">Warm tones are sparse, dry ground; green is the basin's densest forest
+          canopy.</div>
       </div>
 
       <div id="controls" class="panel panel-pad">
