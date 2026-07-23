@@ -148,12 +148,11 @@
           municipal watershed encompassing Nichols and McClure reservoirs. The dry
           corridor running down through Santa Fe and the forested headwaters at the crest are both
           in frame, which is the contrast the map is built to show.</p>
-        <!-- The terrain caveat is deliberately this short. Measured at 232px: this wording adds
-             35px to the column, the fuller one 70px, and the column starts scrolling once its
-             content passes viewport height minus 56px. 35px clears a 900px viewport; 70px does
-             not. The full explanation lives in the README. -->
+        <!-- Keep this caveat tight. The column scrolls once its content passes viewport height
+             minus 56px, and at 232px wide every extra wrapped line costs ~17px. Measure before
+             lengthening it; the full explanation lives in the README. -->
         <p>The terrain is derived from the Copernicus GLO-30 elevation model. EVI is not corrected
-          for it; north-facing slopes read low.</p>
+          for terrain variation; north-facing slopes will underrepresent the true value.</p>
         <p class="meta">S2C_13SDV_20260701_0_L2A · 1 July 2026 · 0.13% cloud · 10&nbsp;m · EPSG:32613</p>
       </div>
     </div>
